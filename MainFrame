@@ -1,0 +1,50 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <iomanip>
+#include <cstdlib>
+
+using namespace std;
+
+const int MAX_ACCOUNTS = 100; // Maximum number of accounts
+const int MIN_DEPOSIT = 5000; // Minimum deposit
+const int PIN_LENGTH = 6;
+const int ACCOUNT_NUMBER_LENGTH = 5; // Expected length for the account number
+const int CONTACT_NUMBER_LENGTH = 11; //Max length contact number
+
+struct Account {
+    int accountNumber;
+    string accountName;
+    string birthday;
+    string contactNumber;
+    int balance;
+    string pinCode; //Encrypted pin code   
+};
+
+ACcount accounts[MAX_ACCOUNTS];
+int accountCount = 0;
+
+bool isValidContactNumber(const string& contact number){
+    if (contactNumber.length() != CONTACT_NUMBER_LENGTH){
+        return false;
+    }
+    for (char ch : contactNumber){
+        if (!isdigit(ch)){
+            return false;
+        }
+    }
+    return true;
+}
+
+string encyptPin(string pin){
+    char key = 'K';
+    string encryptedPin = pin;
+    for (size_t i =0; i < pin.size(); i++){
+        encryptedPin[i] = pin[i] ^ key;
+    }
+    return encryptedPin;
+}
+
+int findAccount(int accountNumber){
+    for (int )
+}
