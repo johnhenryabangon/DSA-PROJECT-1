@@ -46,5 +46,28 @@ string encyptPin(string pin){
 }
 
 int findAccount(int accountNumber){
-    for (int )
+    for (int i=0; i<acountCount; i++){
+        if (accounts[i].accountNumber == accountNumber){
+            return i;
+        }
+    }
+    return -1;
 }
+
+void createATMCARDFile(const Account &account){
+    string filename = to_string(acount.accountNumber) + "_card.txt";
+    ofstream cardFile(filename);
+
+    if (cardFile) {
+    cardFile
+    }
+}
+
+
+
+
+
+
+
+
+
