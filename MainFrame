@@ -25,6 +25,7 @@ struct Account {
 ACcount accounts[MAX_ACCOUNTS];
 int accountCount = 0;
 
+
 // FUNCTION TO CHECK IF CONTACT NUMBER IS VALID (11 DIGITS)
 bool isValidContactNumber(const string& contact number){
     if (contactNumber.length() != CONTACT_NUMBER_LENGTH){
