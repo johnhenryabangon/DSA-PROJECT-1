@@ -277,191 +277,24 @@ void deleteAccount(){
 }
 
 // CHANGE PIN
-void changePin(int accountIndex){
-    string newPin;
-    system("cls");
-    cout << "Enter new 6-digit PIN: ";
-    newPin = getHiddenPin();
 
-    accounts(accountIndex.pinCode = encryptPin(newPin));
-    updateATMCardFile(accounts[accountIndex]);
-    system("pause");
-    cout << "PIN changed successfully!" << endl; 
-    system("pause");
-}
 
 // BALANCE INQUIRY
-void balanceInquiry(int accountIndex){
-    system("cls");
-    cout << "Account Number: " << accounts[accountIndex].accountNumber << endl;
-    cout << "Account Name: " << accounts[accountIndex].accountName << endl;
-    cout << "Account Balance" << accounts[accountIndex].balance << endl;
-    system("pause");
-}
+
 
 // WITHDRAW MONEY
-void withdrawMoney(int accountIndex){
-    int amount;
-    system("cls");
-    cout << "Enter amount to withdraw: ";
-    cin >> amount;
-    system("pause");
-    if (amount > accounts[accountIndex].balance){
-        cout << "Insuffiicient funds." << endl;
-    } else {
-        accounts[accountIndex].balance -= amount;
-        updateATMCardFile(accounts[accountIndex]);
-        cout << "Withdraw successful. New balance: " << accounts[accountIndex].balance << endl;
-    }
-}
+
 
 // DEPOSIT MONEY
-void depositMoney(int accountIndex){
-    int amount;
-    system("cls");
-    cout << "Enter amount to deposit: ";
-    cin >> amount;
-    system("pause");
-    accounts[accountIndex].balance += amount;
-    updateATMCardFile(accounts[accountIndex]);
-    cout << "Deposit successful. New balance: " << accounts[accountIndex].balance << endl;
-    system("pause");
-}
+
 
 // FUNCTION FOR FUND TRANSFER
-void fundTransfer(int accountIndex){
-    int targetAccountNumber, transferAmount;
 
-    cout << "Enter account number for transfer: ";
-    cin >> targetAccountNumber;
-
-    int targetIndex = findAccount(targetAccountNumber);
-    if(targetIndex == -1){
-        cout << "Target account not found!" << endl;
-        return;
-    } 
-
-    cout << "Enter amount to transfer: ";
-    cin >> transferAmount;
-
-    if(transferAmount > accounts[accountIndex].balance){
-        cout << "Insufficient funds in your account." << endl;
-        return;
-    }
-
-    accounts[accountIndex].balance -= transferAmount;
-    accounts[accountIndex].balance += transferAmount;
-
-    updateATMCardFile(accounts[accountIndex]);
-    updateATMCardFile(accounts[targetIndex]);
-
-    cout << "Transfer successful! New Balance: " << accounts[accountIndex].balance << endl;
-    cout << "Target account new balance: " << accounts[targetIndex].balance << endl;
-} 
 
 // FUNCTION TO SIMULATE ATM CARD INSERTION
-void verifyCard(int accountNumber, string enteredPin){
-    Account loadedAccount;
-    if(readATMCardFile(accountNumber, enteredPin, loadedAccount)){
-        int accountIndex = findAccount(accountNumber);
-        if(accountIndex != -1){
-            accounts[accountIndex] = loadedAccount;
-            return accountIndex;
-        }
-    }
-    return -1;
-}
+
 
 // MAIN MENU FOR ATM
-void atmMenu(){
-    int accountNumber;
-    string pin;
-    system("cls");
-    cout << "Welcome to the ATM." << endl;
-    cout << "Please insert your card (Enter account number): ";
-    cin >> accountNumber;
 
-    cout << "Enter your PIN: ";
-    pin = getHiddenPin();
-
-    system("pause");
-    int accountIndex = verifyCard(accountNumber, pin);
-    if (accountIndex == -1) return;
-
-    int choice;
-    do{
-        system("pause");
-        system("cls");
-        cout << endl << "ATM MENU" << endl;
-        cout << "1. Balance Inquiry" << endl;
-        cout << "2. Withdraw Money" << endl;
-        cout << "3. Deposit Money" << endl;
-        cout << "4. Change PIN" << endl;
-        cout << "5. Fund Trasfer" << endl;
-        cout << "6. Exit" << endl;
-        cout << "Enter choice: ";
-        cin >> choice;
-
-        switch (choice){
-            case 1: 
-                balanceInquiry(accountIndex);
-                break;
-            case 2: 
-                withdrawMoney(accountIndex);
-                break;
-            case 3:
-                depositMoney(accountIndex);
-                break;
-            case 4:
-                changePin(accountIndex);
-                break;
-            case 5:
-                fundTransfer(accountIndex);
-                break;
-            case 6:
-                cout << "Thank you for using th ATM." << endl;
-                break;
-            default:
-                cout << "Invalid choice." << endl;
-        }
-        system("pause");
-    }  while (choice != 6);
-}
 
 // MAIN FUNCTION
-int main(){
-    loadedAccountsFromFile();
-
-    int option;
-    do{
-        system("cls");
-        cout << endl << "ATM SIMULATION" << endl;
-        cout << "1. Register Account" << endl;
-        cout << "2. Access ATM" << endl;
-        cout << "3. Delete Acount" << endl;
-        cout << "4. Exit" << endl;
-        cout << "Enter choice: ";
-        cin >> option;
-
-        switch (option){
-            case 1:
-                registerAccount();
-                break;
-            case 2: 
-                atmMenu();
-                break;
-            case 3: 
-                deleteAccount();
-                break;
-            case 4:
-                saveAccountsToFile();
-                cout << "Exiting. . . " << endl;
-                break;
-            default:
-                cout << "Invalid choice. Try again." << endl;
-        }
-        system("pause");
-    } while (option != 4);
-
-    return 0;
-}
