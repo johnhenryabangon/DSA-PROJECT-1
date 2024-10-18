@@ -122,25 +122,7 @@ void updateATMCardFile(const Account &account){
 }
 
 // FUNCTION TO SAVE ALL ACCOUNTS
-void saveAccountsToFile(){
-    ofstream outFile("accounts_data.txt");
 
-    if(outFile){
-        outFile << accountCount << endl;
-        for (int i = 0; i <accountCount; i++){
-            outFile << accounts[i].accountNumber << endl;
-            outFile << accounts[i].accountName << endl;
-            outFile << accounts[i].birthday << endl;
-            outFile << accounts[i].contactNumber << endl;
-            outFile << accounts[i].pinCode << endl;
-            outFile << accounts[i].balance << endl;
-        }
-        outFile.close();
-        cout << "Accounts saved successfully." << endl;
-    } else {
-        cout << "Error saving accounts" << endl;
-    }
-}
 
 // FUNCTION TO LOAD ACCOUNTS
 void loadedAccountsFromFile(){
