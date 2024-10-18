@@ -301,7 +301,20 @@ void balanceInquiry(int accountIndex){
 }
 
 // WITHDRAW MONEY
-
+void withdrawMoney(int accountIndex){
+    int amount;
+    system("cls");
+    cout << "Enter amount to withdraw: "; 
+    cin >> amount;
+    system("pause");
+    if(amount > accounts[accountIndex]. balance){ 
+    cout <<"Insufficient Funds." << endl;
+}else {
+    accounts[accountIndex].balance -= amount;
+    updateATMCardFile(accounts[accountIndex]);
+    cout << "Withrawal successful.New Balance: " << accounts[accountIndex]. balance << endl;
+    }
+}
 
 // DEPOSIT MONEY
 
