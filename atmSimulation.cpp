@@ -277,7 +277,19 @@ void deleteAccount(){
 }
 
 // CHANGE PIN
+void changePin(int accountIndex){
+    string newPin;
+    system ("cls");
+    cout<< "Enter new 6-digit PIN: ";
+    newPin = getHiddenPin();
 
+    accounts[accountIndex].pinCode = encryptPin (newPin):
+    updateATMCardFile(accounts[accountIndex]);
+    system("pause");
+    cout<<"PIN changed successfully!" << endl;
+    system("pause");
+    
+}
 
 // BALANCE INQUIRY
 
