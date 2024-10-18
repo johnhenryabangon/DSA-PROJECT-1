@@ -292,7 +292,13 @@ void changePin(int accountIndex){
 }
 
 // BALANCE INQUIRY
-
+void balanceInquiry(int accountIndex){
+    system("cls");
+    cout << "Account number: " << acounts[accountIndex].accountNumber  << endl;
+    cout << "Account name: " << acounts[accountIndex].accountName  << endl;
+    cout << "Current Balance: " << acounts[accountIndex].balance  << endl;
+    system("pause");
+}
 
 // WITHDRAW MONEY
 
