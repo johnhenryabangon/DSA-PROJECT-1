@@ -317,7 +317,17 @@ void withdrawMoney(int accountIndex){
 }
 
 // DEPOSIT MONEY
-
+void depositMoney(int accountIndex) {
+    int amount;
+    system("cls");
+    cout << "Enter amount to deposit: ";
+    cin >> amount;
+    system("pause");
+    accounts[accountIndex].balance += amount;
+    updateATMCardFile(accounts[accountIndex]);  // Update the file after deposit
+    cout << "Deposit successful. New balance: " << accounts[accountIndex].balance << endl;
+    system("pause");
+}
 
 // FUNCTION FOR FUND TRANSFER
 
