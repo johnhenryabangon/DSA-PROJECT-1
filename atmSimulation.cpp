@@ -330,6 +330,36 @@ void depositMoney(int accountIndex) {
 }
 
 // FUNCTION FOR FUND TRANSFER
+void fundTransfer(int accountIndex){
+    int targetaccountNumber, transferAmount;
+
+    cout << "Enter target account number for transfer: ";
+    cin >> targetaccountNumber;
+
+    int targetIndex = findAccount(targetaccountNumber);
+    if (targetIndex = -1){
+        cout << "Target account not found!"endl;
+        return;
+
+    cout << "Enter amount to transfer: ";
+    cin >> transferAmount;
+
+    if (transferAmount > accounts[accountIndex].balance){  
+        cout << "Insufficient funds in your account."endl;
+        return;    
+
+    accounts[accountIndex].balance -= transferAmount;
+    accounts[accountIndex].balance += transferAmount;
+    updateATMCardFile(accounts[accountIndex]);
+    updateATMCardFile(account[targetIndex]);
+
+    cout << "Transfer successful! New balance: " << accounts[accountIndex]mbalance << endl;
+    cout << "Target account new balance: " << accounts [targetIndex]balance << endl;
+}
+
+ 
+
+    
 
 
 // FUNCTION TO SIMULATE ATM CARD INSERTION
