@@ -58,22 +58,39 @@ int findAccount(int accountNumber){
     return -1;
 }
 
-void createATMCARDFile(const Account &account){
-    string filename = to_string(acount.accountNumber) + "_card.txt";
-    ofstream cardFile(filename);
+// Function to create ATM card (file) on the flash drive - for individual account
+bool createATMCardFile(const Account &account) {
+    string usbPath = "D:/";
+    string filename = to_string(account.accountNumber) + "_card.txt";
+    ofstream cardFile(usbPath + filename);
+
+    // Design for user feedback
+    cout << "\n===========================================" << endl;
+    cout << "         CREATING ATM CARD FILE           " << endl;
+    cout << "===========================================\n" << endl;
 
     if (cardFile) {
+        // Write account details to the file
         cardFile << account.accountNumber << endl;
         cardFile << account.accountName << endl;
         cardFile << account.birthday << endl;
         cardFile << account.contactNumber << endl;
         cardFile << account.pinCode << endl;
         cardFile << account.balance << endl;
-        cardFile.close();
-        cout << "ATM card (file) created successfully." << end;
+        cardFile.close();  // Close the file
+
+        // Success message
+        cout << "ATM card file created successfully at: " << usbPath + filename << endl;
+        return true; // Indicate success
     } else {
-        cout << "Error creating ATM card (file)." << endl;
+        // Error message
+        cout << "Error: Unable to create ATM card file." << endl;
+        cout << "There is no card detected." << endl;
+        return false; // Indicate failure
     }
+
+    cout << "\n===========================================" << endl;
+    system("pause");  // Pause to allow the user to read the message
 }
 
 // FUNCTION TO READ ATM CARD FILE
@@ -102,32 +119,49 @@ bool readATMCardFile(int accountNumber, const string &enteredPin, Account &loade
     }
 }
 
-// FUNCTION TO UPDATE THE ATM CARD (FILE)
-void updateATMCardFile(const Account &account){
+// Function to update the ATM card (file) after transactions
+void updateATMCardFile(const Account &account) {
+    string usbPath = "D:/";
     string filename = to_string(account.accountNumber) + "_card.txt";
-    ofstream cardFile(filename);
+    ofstream cardFile(usbPath + filename);
 
-    if(cardFile){
+    // Design for user feedback
+    cout << "\n===========================================" << endl;
+    cout << "           UPDATING ATM CARD FILE         " << endl;
+    cout << "===========================================\n" << endl;
+
+    if (cardFile) {
+        // Write updated account details to the file
         cardFile << account.accountNumber << endl;
         cardFile << account.accountName << endl;
         cardFile << account.birthday << endl;
         cardFile << account.contactNumber << endl;
         cardFile << account.pinCode << endl;
         cardFile << account.balance << endl;
-        cardFile.close();
-        cout << "ATM card (file) updated successfully." << endl;
+        cardFile.close();  // Close the file
+
+        // Success message
+        cout << "ATM card file updated successfully" << endl;
     } else {
-        cout << "Error updating ATM card (file)." << endl;
+        // Error message
+        cout << "Error: Unable to update ATM card file." << endl;
     }
+
+    cout << "\n===========================================" << endl;
+    system("pause");  // Pause to allow the user to read the message
 }
 
-// FUNCTION TO SAVE ALL ACCOUNTS
-void saveAccountsToFile(){
-    ofstream outFile("accounts_data.txt");
+// FUNCTION TO SAVE ALL ACCOUNTS - list of all accounts
+void saveAccountsToFile() {
+    ofstream outFile("D:/accounts_data.txt");
 
-    if(outFile){
+    // Check if the file opened successfully
+    if (outFile.is_open()) {
+        // Save the number of accounts first
         outFile << accountCount << endl;
-        for (int i = 0; i <accountCount; i++){
+
+        // Loop through all the accounts and save the relevant details
+        for (int i = 0; i < accountCount; i++) {
             outFile << accounts[i].accountNumber << endl;
             outFile << accounts[i].accountName << endl;
             outFile << accounts[i].birthday << endl;
@@ -135,13 +169,21 @@ void saveAccountsToFile(){
             outFile << accounts[i].pinCode << endl;
             outFile << accounts[i].balance << endl;
         }
-        outFile.close();
-        cout << "Accounts saved successfully." << endl;
-    } else {
-        cout << "Error saving accounts" << endl;
-    }
-}
 
+        outFile.close();  // Ensure the file is properly closed after writing
+        cout << "\n===========================================" << endl;
+        cout << "         ACCOUNTS SAVED SUCCESSFULLY       " << endl;
+        cout << "===========================================\n" << endl;
+    } else {
+        // Provide a clear error message if the file could not be opened
+        cout << "\n===========================================" << endl;
+        cout << "          ERROR: FAILED TO SAVE DATA       " << endl;
+        cout << "===========================================\n" << endl;
+        cout << "There was an issue saving the account.\n" << endl;
+    }
+
+    system("pause");  // Pause to allow the user to read the message
+}
 // FUNCTION TO LOAD ACCOUNTS
 void loadedAccountsFromFile(){
     ifstream inFile("accounts_data.txt");
