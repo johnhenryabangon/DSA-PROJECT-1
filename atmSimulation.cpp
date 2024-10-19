@@ -357,10 +357,6 @@ void fundTransfer(int accountIndex){
     cout << "Target account new balance: " << accounts [targetIndex]balance << endl;
 }
 
- 
-
-    
-
 
 // FUNCTION TO SIMULATE ATM CARD INSERTION
 
