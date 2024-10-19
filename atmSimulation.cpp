@@ -22,11 +22,11 @@ struct Account {
     string pinCode; // ENCRYPTED PIN CODE  
 };
 
-ACcount accounts[MAX_ACCOUNTS];
+Account accounts[MAX_ACCOUNTS];
 int accountCount = 0;
 
 // FUNCTION TO CHECK IF CONTACT NUMBER IS VALID
-bool isValidContactNumber(const string& contact number){
+bool isValidContactNumber(const string& contactNumber){
     if (contactNumber.length() != CONTACT_NUMBER_LENGTH){
         return false;
     }
@@ -50,7 +50,7 @@ string encyptPin(string pin){
 
 //  FUNCTION TO CHECK IF AN ACCOUNT EXIST BY ACCOUNT NUMNBER
 int findAccount(int accountNumber){
-    for (int i=0; i<acountCount; i++){
+    for (int i=0; i<accountCount; i++){
         if (accounts[i].accountNumber == accountNumber){
             return i;
         }
@@ -91,24 +91,25 @@ bool createATMCardFile(const Account &account) {
     system("pause");  }
 
 // FUNCTION TO READ ATM CARD FILE
-bool readATMCardFile(int accountNumber, const string &enteredPin, Account &loadedAccount){
+bool readATMCardFile(int accountNumber, const string &enteredPin, Account &loadedAccount) {
+    string usbPath = "D:/";
     string filename = to_string(accountNumber) + "_card.txt";
-    ifstream cardFile(filename);
+    ifstream cardFile(usbPath + filename);
 
-    if(!cardFile){
-        cout << "ATM card not found. PLease insert the correct card." << endl;
+    if (!cardFile) {
+        cout << "\nATM card not found. Please insert the correct card.\n\n" << endl;
         return false;
     }
 
     cardFile >> loadedAccount.accountNumber;
-    cardFile.ignore();
+    cardFile.ignore(); // To skip newline after number
     getline(cardFile, loadedAccount.accountName);
     getline(cardFile, loadedAccount.birthday);
     getline(cardFile, loadedAccount.contactNumber);
     cardFile >> loadedAccount.pinCode;
     cardFile >> loadedAccount.balance;
 
-    if (encryptPin(enteredPin) == loadedAccount.pinCode){
+    if (encryptPin(enteredPin) == loadedAccount.pinCode) {
         return true;
     } else {
         cout << "Incorrect PIN." << endl;
@@ -197,18 +198,17 @@ void loadAccountsFromFile() {
 }
 
 // FUNCTION TO SECURELY INPUT PIN 
-string getHiddenPin(){
+string getHiddenPin() {
     string pin;
     char ch;
-
-    while(pin.length() < PIN_LENGTH){
-        ch = getch();
-        if(ch >= '0' && ch <= '9'){
+    while (pin.length() < PIN_LENGTH) {
+        ch = getch(); // Get individual character without showing it on the console
+        if (ch >= '0' && ch <= '9') {
             pin.push_back(ch);
-            cout << "*";
-        } else if {
-            pin.po_back();
-            cout << "\b \b";
+            cout << '*'; // Display a '*' instead of the character
+        } else if (ch == '\b' && !pin.empty()) {  // Handle backspace
+            pin.pop_back();
+            cout << "\b \b"; // Erase last '*'
         }
     }
     cout << endl;
@@ -774,4 +774,3 @@ int main() {
 
     return 0;
 }
-
