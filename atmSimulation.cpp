@@ -64,7 +64,6 @@ bool createATMCardFile(const Account &account) {
     string filename = to_string(account.accountNumber) + "_card.txt";
     ofstream cardFile(usbPath + filename);
 
-    // Design for user feedback
     cout << "\n===========================================" << endl;
     cout << "         CREATING ATM CARD FILE           " << endl;
     cout << "===========================================\n" << endl;
@@ -77,21 +76,19 @@ bool createATMCardFile(const Account &account) {
         cardFile << account.contactNumber << endl;
         cardFile << account.pinCode << endl;
         cardFile << account.balance << endl;
-        cardFile.close();  // Close the file
-
-        // Success message
-        cout << "ATM card file created successfully at: " << usbPath + filename << endl;
-        return true; // Indicate success
+        cardFile.close();  
+        
+        cout << "ATM card file created successfully at: " << endl;
+        return true; 
     } else {
         // Error message
         cout << "Error: Unable to create ATM card file." << endl;
         cout << "There is no card detected." << endl;
-        return false; // Indicate failure
+        return false; 
     }
 
     cout << "\n===========================================" << endl;
-    system("pause");  // Pause to allow the user to read the message
-}
+    system("pause");  }
 
 // FUNCTION TO READ ATM CARD FILE
 bool readATMCardFile(int accountNumber, const string &enteredPin, Account &loadedAccount){
@@ -125,42 +122,35 @@ void updateATMCardFile(const Account &account) {
     string filename = to_string(account.accountNumber) + "_card.txt";
     ofstream cardFile(usbPath + filename);
 
-    // Design for user feedback
     cout << "\n===========================================" << endl;
     cout << "           UPDATING ATM CARD FILE         " << endl;
     cout << "===========================================\n" << endl;
 
     if (cardFile) {
-        // Write updated account details to the file
         cardFile << account.accountNumber << endl;
         cardFile << account.accountName << endl;
         cardFile << account.birthday << endl;
         cardFile << account.contactNumber << endl;
         cardFile << account.pinCode << endl;
         cardFile << account.balance << endl;
-        cardFile.close();  // Close the file
+        cardFile.close();  
 
-        // Success message
         cout << "ATM card file updated successfully" << endl;
     } else {
-        // Error message
         cout << "Error: Unable to update ATM card file." << endl;
     }
 
     cout << "\n===========================================" << endl;
-    system("pause");  // Pause to allow the user to read the message
+    system("pause");  
 }
 
 // FUNCTION TO SAVE ALL ACCOUNTS - list of all accounts
 void saveAccountsToFile() {
     ofstream outFile("D:/accounts_data.txt");
 
-    // Check if the file opened successfully
     if (outFile.is_open()) {
-        // Save the number of accounts first
         outFile << accountCount << endl;
 
-        // Loop through all the accounts and save the relevant details
         for (int i = 0; i < accountCount; i++) {
             outFile << accounts[i].accountNumber << endl;
             outFile << accounts[i].accountName << endl;
@@ -170,30 +160,29 @@ void saveAccountsToFile() {
             outFile << accounts[i].balance << endl;
         }
 
-        outFile.close();  // Ensure the file is properly closed after writing
+        outFile.close();  
         cout << "\n===========================================" << endl;
         cout << "         ACCOUNTS SAVED SUCCESSFULLY       " << endl;
         cout << "===========================================\n" << endl;
     } else {
-        // Provide a clear error message if the file could not be opened
         cout << "\n===========================================" << endl;
         cout << "          ERROR: FAILED TO SAVE DATA       " << endl;
         cout << "===========================================\n" << endl;
         cout << "There was an issue saving the account.\n" << endl;
     }
 
-    system("pause");  // Pause to allow the user to read the message
+    system("pause");  
 }
-// FUNCTION TO LOAD ACCOUNTS
-void loadedAccountsFromFile(){
-    ifstream inFile("accounts_data.txt");
 
-    if(inFile){
-        inFile >> accountCount;
-        inFile.ignore();
-        for(int i = 0; i < accountCount; i++){
-            inFile >> accounts[i]accountNumber;
-            inFile.ignore();
+// FUNCTION TO LOAD ACCOUNTS
+void loadAccountsFromFile() {
+    ifstream inFile("D:/accounts_data.txt");
+    if (inFile) {
+        inFile >> accountCount; 
+        inFile.ignore(); 
+        for (int i = 0; i < accountCount; i++) {
+            inFile >> accounts[i].accountNumber;
+            inFile.ignore(); 
             getline(inFile, accounts[i].accountName);
             getline(inFile, accounts[i].birthday);
             getline(inFile, accounts[i].contactNumber);
@@ -227,183 +216,562 @@ string getHiddenPin(){
 }
 
 // REGISTRATION MODULE - ENROLL NEW ACCOUNTS
-void registerAccount(){
-    if(accountCount >= MAX_ACCOUNTS){
-        cout <<"Cannot create more accounts. Maximum limit reached." << endl;
+void registerAccount() {
+    if (accountCount >= MAX_ACCOUNTS) {
+        cout << "\n==========================================" << endl;
+        cout << "     Cannot create more accounts.          " << endl;
+        cout << "       Maximum limit reached.              " << endl;
+        cout << "==========================================\n" << endl;
+        system("pause");
         return;
     }
 
     system("cls");
     Account newAccount;
     string accountNumberStr;
-    do {
-        cout << "Enter Account Number (Exactly 5 digits): " << endl;
-        cin >> accountNumberStr;
 
-        if(accountNumberStr.length() != ACCOUNT_NUMBER_LENGTH || !isdigit(accountNumberStr[0])){
-            cout << "Error: Account number must be exactly 5 digits. Try again." << endl;
+    char confirm;
+
+    cout << "\n==========================================" << endl;
+    cout << "        WELCOME TO POWER BANK              " << endl;
+    cout << "==========================================\n" << endl;
+
+    cout << "ATM Account Registration" << endl;
+    cout << "Do you want to continue with registration?" << endl;
+    cout << " (1 to proceed / 0 to cancel): ";
+    cin >> confirm;
+
+    if (tolower(confirm) == '0') {  
+        cout << "\n==========================================" << endl;
+        cout << "     Registration canceled. Returning      " << endl;
+        cout << "         to main menu.                     " << endl;
+        cout << "==========================================\n" << endl;
+        system("pause");
+        return;  // Exit the function, returning to main menu
+    } else if (tolower(confirm) == '1') {
+
+        do {
+            cout << "\nEnter Account Number (exactly 5 digits): ";
+            cin >> accountNumberStr;
+
+            // Check if the input is exactly 5 digits
+            if (accountNumberStr.length() != ACCOUNT_NUMBER_LENGTH || !isdigit(accountNumberStr[0])) {
+                cout << "Error: Account number must be exactly 5 digits. Try again." << endl;
+            } else {
+                newAccount.accountNumber = stoi(accountNumberStr); // Convert the valid string to integer
+                break;
+            }
+        } while (true);  
+    
+        cout << "Enter Account Name: ";
+        cin.ignore();  // Clear the input buffer
+        getline(cin, newAccount.accountName);
+
+        cout << "Enter Birthday (dd/mm/yyyy): ";
+        getline(cin, newAccount.birthday);
+
+        string contactNumber;
+        do {
+            cout << "Enter Contact Number (11 digits): ";
+            getline(cin, contactNumber);
+
+            if (!isValidContactNumber(contactNumber)) {
+                cout << "Invalid contact number. Please enter a valid 11-digit number." << endl;
+            }
+        } while (!isValidContactNumber(contactNumber));
+
+        newAccount.contactNumber = contactNumber;
+
+        // Ensure a valid deposit amount
+        while (true) {
+            cout << "Enter Initial Deposit (minimum " << MIN_DEPOSIT << "): ";
+            cin >> newAccount.balance;
+
+            if (newAccount.balance < MIN_DEPOSIT) {
+                cout << "Initial deposit must be at least " << MIN_DEPOSIT << ". Try again." << endl;
+            } else {
+                break;
+            }
+        }
+
+        system("pause");
+
+        string pin;
+        cout << "Set a 6-digit PIN: ";
+        pin = getHiddenPin();  
+        newAccount.pinCode = encryptPin(pin);
+
+        // Add account to the list and attempt to create the ATM card file
+        accounts[accountCount++] = newAccount;
+
+        // Check if the ATM card file creation was successful
+        if (createATMCardFile(newAccount)) {
+            system("cls");
+            cout << "\n==========================================" << endl;
+            cout << "      Account registered successfully!     " << endl;
+            cout << " Enjoy powerful transactions with POWER BANK!" << endl;
+            cout << "==========================================\n" << endl;
         } else {
-            newAccount.accountNumber = stoi(accountNumberStr);
-            break;
-        } while (true);
+            // If file creation failed
+            accountCount--; // Reduce account count since registration failed
+            cout << "\n==========================================" << endl;
+            cout << "       Error registering account.          " << endl;
+            cout << "  Please try registering again later.      " << endl;
+            cout << "==========================================\n" << endl;
+        }
+    } else {
+        cout << "\n==========================================" << endl;
+        cout << "       Error. Returning to main menu.      " << endl;
+        cout << "==========================================\n" << endl;
+        system("pause");
+        return;
     }
 
-    cout << "Enter Account Name: " << endl;
-    cin.ignore();
-    getline(cin, newAccount.accountName);
-
-    cout << "Enter Birthday(dd/mm/yyyy): " << endl;
-    getline(cin, newAccount.birthday);
-
-    string contactNumber;
-    do(){
-        cout << "Enter Contact Number: " << endl;
-        getline(cin, contactNumber);
-
-        if(!isValidContactNumber(contactNumber)){
-            cout << "Invalid contact number. Please enter a valid 11-digit number." << endl;
-        }
-    } while (!isValidContactNumber(contactNumber));
-
-    newAccount.contactNumber = contactNumber;
-
-    while (true){
-        cout << "Enter Initial Deposit(minimum " << MIN_DEPOSIT << "): ";
-        cin >> newAccount.balance;
-
-        if(newAccount.balance < MIN_DEPOSIT){
-            cout << "Initial deposit at least " << MIN_DEPOSIT << ". Try again." << endl;
-        } else {
-            break;
-        }
-    } system("pause");
-
-    string pin;
-    cout << "Set a 6-digit PIN: ";
-    pin = getHiddenPin();
-    newAccount.pinCode = encryptPin(pin);
-
-    accountNumberStr[accountCount++] = newAccount;
-    createATMCARDFile(newAccount);
+    cout << "IMPORTANT: Ensure you exit the program properly to save your account data." << endl;
+    cout << "Failure to exit properly may result in data loss.\n" << endl;
     system("pause");
-    cout << "Account registered seccessfully!" << endl;
 }
 
 // FUNCTION TO DELETE ACCOUNT
-void deleteAccount(){
+void deleteAccount() {
     int accountNumber;
+    system("cls");
+
+    cout << "\n==========================================" << endl;
+    cout << "          DELETE ATM ACCOUNT              " << endl;
+    cout << "==========================================\n" << endl;
+
     cout << "Enter the account number to delete: ";
     cin >> accountNumber;
 
     int accountIndex = findAccount(accountNumber);
-    if(accountIndex == -1){
-        cout << "Account not found." << endl;
+    
+    if (accountIndex == -1) {
+        cout << "\n==========================================" << endl;
+        cout << "            ACCOUNT NOT FOUND             " << endl;
+        cout << "==========================================\n" << endl;
+        system("pause");
         return;
     }
 
-    for(int i = accountIndex; i < accountCount -1; i++){
-        accounts[i] = accounts[i + 1];
-    }
+    // Display account details before deletion
+    cout << "\nAccount Found:\n";
+    cout << "Account Number : " << accounts[accountIndex].accountNumber << endl;
+    cout << "Account Name   : " << accounts[accountIndex].accountName << endl;
+    cout << "Balance        : PHP " << accounts[accountIndex].balance << "\n" << endl;
 
-    accountCount--;
-    cout << "Account deleted successfully." << endl;
+    // Confirm deletion
+    char confirm;
+    cout << "Are you sure you want to delete this account? (1 to confirm / 0 to cancel): ";
+    cin >> confirm;
 
-    string filename = to_string(accountNumber) + "_card.txt";
-    if(remove(filename.c_str()) != 0){
-        cout << "Error deleting ATM card file." << endl;
+    if (tolower(confirm) == '0') {
+        cout << "\nDeletion canceled. Returning to main menu.\n" << endl;
+        system("pause");
+        return;
+    } else if (tolower(confirm) == '1') {
+        for (int i = accountIndex; i < accountCount - 1; i++) {
+            accounts[i] = accounts[i + 1];
+        }
+        accountCount--; 
+
+        cout << "\n==========================================" << endl;
+        cout << "         ACCOUNT DELETED SUCCESSFULLY     " << endl;
+        cout << "==========================================\n" << endl;
+
+        // Delete ATM card individual file
+        string filename = "D:/" + to_string(accountNumber) + "_card.txt";
+        if (remove(filename.c_str()) != 0) {
+            cout << "Error deleting ATM card file." << endl;
+        } else {
+            cout << "ATM card file deleted successfully." << endl;
+        }
+
+        // Save updated accounts to file
+        saveAccountsToFile();
     } else {
-        cout << "ATM card file deleted successfully." << endl;
+        cout << "\nInvalid input. Returning to main menu.\n" << endl;
     }
 
-    saveAccountsToFile();
+    system("pause");
 }
 
 // CHANGE PIN
-void changePin(int accountIndex){
-    string newPin;
-    system ("cls");
-    cout<< "Enter new 6-digit PIN: ";
-    newPin = getHiddenPin();
+void changePin(int accountIndex) {
+    string newPin, confirmPin;
+    system("cls");
 
-    accounts[accountIndex].pinCode = encryptPin (newPin):
-    updateATMCardFile(accounts[accountIndex]);
+    cout << "\n==========================================" << endl;
+    cout << "         POWER BANK - CHANGE PIN          " << endl;
+    cout << "==========================================\n" << endl;
+
+    do {
+        cout << "Enter new 6-digit PIN: ";
+        newPin = getHiddenPin();  // Capture hidden PIN input
+
+        if (newPin.length() != 6 || !isdigit(newPin[0])) {
+            cout << "\n==========================================" << endl;
+            cout << "         ERROR: INVALID PIN LENGTH        " << endl;
+            cout << "==========================================\n" << endl;
+            cout << "PIN must be exactly 6 digits. Please try again.\n" << endl;
+        }
+    } while (newPin.length() != 6 || !isdigit(newPin[0]));
+
+    // Confirm the new PIN to avoid mistakes
+    cout << "\nConfirm new 6-digit PIN: ";
+    confirmPin = getHiddenPin();
+
+    if (newPin != confirmPin) {
+        cout << "\n==========================================" << endl;
+        cout << "          ERROR: PINS DO NOT MATCH        " << endl;
+        cout << "==========================================\n" << endl;
+        cout << "PIN change failed. Please try again.\n" << endl;
+    } else {
+        // Update the PIN if valid and confirmed
+        accounts[accountIndex].pinCode = encryptPin(newPin);
+        updateATMCardFile(accounts[accountIndex]);
+
+        cout << "\n==========================================" << endl;
+        cout << "           PIN CHANGED SUCCESSFULLY        " << endl;
+        cout << "==========================================\n" << endl;
+    }
+
     system("pause");
-    cout<<"PIN changed successfully!" << endl;
-    system("pause");
-    
 }
 
 // BALANCE INQUIRY
-void balanceInquiry(int accountIndex){
+void balanceInquiry(int accountIndex) {
     system("cls");
-    cout << "Account number: " << acounts[accountIndex].accountNumber  << endl;
-    cout << "Account name: " << acounts[accountIndex].accountName  << endl;
-    cout << "Current Balance: " << acounts[accountIndex].balance  << endl;
+    
+    cout << "\n==========================================" << endl;
+    cout << "          POWER BANK SAVINGS INQUIRY       " << endl;
+    cout << "==========================================\n" << endl;
+
+    cout << "Account Details" << endl;
+    cout << "------------------------------------------" << endl;
+    cout << "Account Number : " << accounts[accountIndex].accountNumber << endl;
+    cout << "Account Name   : " << accounts[accountIndex].accountName << endl;
+    cout << "Current Balance: PHP " << accounts[accountIndex].balance << endl;
+    cout << "------------------------------------------\n" << endl;
+
+    cout << "Note: Please make sure to properly exit the system to ensure data is saved." << endl;
+
+    cout << "\n==========================================" << endl;
+    cout << "           Thank you for using            " << endl;
+    cout << "          POWER BANK ATM SERVICE          " << endl;
+    cout << "==========================================" << endl;
+
     system("pause");
 }
 
 // WITHDRAW MONEY
-void withdrawMoney(int accountIndex){
+void withdrawMoney(int accountIndex) {
     int amount;
     system("cls");
-    cout << "Enter amount to withdraw: "; 
-    cin >> amount;
-    system("pause");
-    if(amount > accounts[accountIndex]. balance){ 
-    cout <<"Insufficient Funds." << endl;
-}else {
-    accounts[accountIndex].balance -= amount;
-    updateATMCardFile(accounts[accountIndex]);
-    cout << "Withrawal successful.New Balance: " << accounts[accountIndex]. balance << endl;
-    }
-}
 
+    cout << "\n==========================================" << endl;
+    cout << "          POWER BANK - WITHDRAWAL          " << endl;
+    cout << "==========================================\n" << endl;
+
+    cout << "Account Number : " << accounts[accountIndex].accountNumber << endl;
+    cout << "Account Name   : " << accounts[accountIndex].accountName << endl;
+    cout << "------------------------------------------" << endl;
+    cout << "Current Balance: PHP " << accounts[accountIndex].balance << endl;
+    cout << "------------------------------------------" << endl;
+
+    cout << "\nEnter amount to withdraw: PHP ";
+    cin >> amount;
+    
+    system("pause");
+
+    // Check for sufficient funds
+    if (amount > accounts[accountIndex].balance) {
+        cout << "\n==========================================" << endl;
+        cout << "         ERROR: INSUFFICIENT FUNDS         " << endl;
+        cout << "==========================================" << endl;
+        cout << "You do not have enough balance to withdraw that amount.\n" << endl;
+    } else {
+        // Successful withdrawal
+        accounts[accountIndex].balance -= amount;
+        updateATMCardFile(accounts[accountIndex]);  
+
+        cout << "\n==========================================" << endl;
+        cout << "       WITHDRAWAL SUCCESSFUL               " << endl;
+        cout << "==========================================" << endl;
+        cout << "Amount Withdrawn: PHP " << amount << endl;
+        cout << "New Balance     : PHP " << accounts[accountIndex].balance << endl;
+        cout << "==========================================\n" << endl;
+    }
+
+    cout << "Please take your cash. Thank you for using POWER BANK." << endl;
+
+    system("pause");
+}
 // DEPOSIT MONEY
 void depositMoney(int accountIndex) {
     int amount;
     system("cls");
-    cout << "Enter amount to deposit: ";
+
+    cout << "\n==========================================" << endl;
+    cout << "           POWER BANK - DEPOSIT           " << endl;
+    cout << "==========================================\n" << endl;
+
+    cout << "Account Number : " << accounts[accountIndex].accountNumber << endl;
+    cout << "Account Name   : " << accounts[accountIndex].accountName << endl;
+    cout << "------------------------------------------" << endl;
+    cout << "Current Balance: PHP " << accounts[accountIndex].balance << endl;
+    cout << "------------------------------------------" << endl;
+
+    cout << "\nEnter amount to deposit: PHP ";
     cin >> amount;
-    system("pause");
-    accounts[accountIndex].balance += amount;
-    updateATMCardFile(accounts[accountIndex]);  // Update the file after deposit
-    cout << "Deposit successful. New balance: " << accounts[accountIndex].balance << endl;
+
+    // Validate deposit amount
+    if (amount <= 0) {
+        cout << "\n==========================================" << endl;
+        cout << "           ERROR: INVALID AMOUNT           " << endl;
+        cout << "==========================================\n" << endl;
+        cout << "Deposit amount must be greater than 0.\n" << endl;
+    } else {
+        accounts[accountIndex].balance += amount;
+        updateATMCardFile(accounts[accountIndex]);  // Update the file after deposit
+
+        cout << "\n==========================================" << endl;
+        cout << "        DEPOSIT SUCCESSFUL                 " << endl;
+        cout << "==========================================\n" << endl;
+        cout << "Amount Deposited: PHP " << amount << endl;
+        cout << "New Balance     : PHP " << accounts[accountIndex].balance << endl;
+        cout << "==========================================\n" << endl;
+    }
+
     system("pause");
 }
 
 // FUNCTION FOR FUND TRANSFER
-void fundTransfer(int accountIndex){
-    int targetaccountNumber, transferAmount;
+void fundTransfer(int accountIndex) {
+    int targetAccountNumber, transferAmount;
 
+    // Display transfer fund menu
+    system("cls");
+    cout << "\n===========================================" << endl;
+    cout << "         POWER BANK - FUND TRANSFER        " << endl;
+    cout << "===========================================\n" << endl;
+
+    // Ask for the target account number
     cout << "Enter target account number for transfer: ";
-    cin >> targetaccountNumber;
+    cin >> targetAccountNumber;
 
-    int targetIndex = findAccount(targetaccountNumber);
-    if (targetIndex = -1){
-        cout << "Target account not found!"endl;
+    // Find the target account
+    int targetIndex = findAccount(targetAccountNumber);
+    if (targetIndex == -1) {
+        cout << "\n===========================================" << endl;
+        cout << "           ERROR: ACCOUNT NOT FOUND        " << endl;
+        cout << "===========================================\n" << endl;
+        cout << "The target account number does not exist. Please try again.\n" << endl;
+        system("pause");
         return;
+    }
 
     cout << "Enter amount to transfer: ";
     cin >> transferAmount;
 
-    if (transferAmount > accounts[accountIndex].balance){  
-        cout << "Insufficient funds in your account."endl;
-        return;    
+    cout << "\n-------------------------------------------" << endl;
 
+    // Check if the source account has enough funds
+    if (transferAmount > accounts[accountIndex].balance) {
+        cout << "\n===========================================" << endl;
+        cout << "          ERROR: INSUFFICIENT FUNDS         " << endl;
+        cout << "===========================================\n" << endl;
+        cout << "You do not have enough balance for this transaction.\n" << endl;
+        system("pause");
+        return;
+    }
+
+    // Perform the transfer
     accounts[accountIndex].balance -= transferAmount;
-    accounts[accountIndex].balance += transferAmount;
-    updateATMCardFile(accounts[accountIndex]);
-    updateATMCardFile(account[targetIndex]);
+    accounts[targetIndex].balance += transferAmount;
 
-    cout << "Transfer successful! New balance: " << accounts[accountIndex]mbalance << endl;
-    cout << "Target account new balance: " << accounts [targetIndex]balance << endl;
+    updateATMCardFile(accounts[accountIndex]);
+    updateATMCardFile(accounts[targetIndex]);
+
+    cout << "\n===========================================" << endl;
+    cout << "            TRANSFER SUCCESSFUL!            " << endl;
+    cout << "===========================================\n" << endl;
+    cout << "Amount Transferred: " << transferAmount << endl;
+    cout << "Your new balance: " << accounts[accountIndex].balance << endl;
+    cout << "Target account new balance: " << accounts[targetIndex].balance << "\n" << endl;
+
+    system("pause");
 }
 
 
 // FUNCTION TO SIMULATE ATM CARD INSERTION
-
+int verifyCard(int accountNumber, string enteredPin) {
+    Account loadedAccount;
+    if (readATMCardFile(accountNumber, enteredPin, loadedAccount)) {
+        // Update the internal list with the loaded account details
+        int accountIndex = findAccount(accountNumber);
+        if (accountIndex != -1) {
+            accounts[accountIndex] = loadedAccount;
+            return accountIndex;
+        }
+    }
+    return -1;
+}
 
 // MAIN MENU FOR ATM
+void atmMenu() {
+    int accountNumber;
+    string pin;
+    system("cls");
+    
+    cout << "\n==========================================" << endl;
+    cout << "     Welcome to POWER BANK ATM MACHINE       " << endl;
+    cout << "===========================================\n" << endl;
 
+    cout << "\nPlease insert your card (enter account number): ";
+    cin >> accountNumber;
+
+    cout << "Enter your PIN: ";
+    pin = getHiddenPin();  // Capture hidden PIN input
+
+    int accountIndex = verifyCard(accountNumber, pin);
+    if (accountIndex == -1) return; // Invalid card or PIN
+
+    int choice;
+    do {
+        system("cls");
+        cout << "\n==========================================" << endl;
+        cout << "         POWER BANK ATM MACHINE MENU        " << endl;
+        cout << "===========================================\n" << endl;
+        
+        cout << "IMPORTANT: Ensure you exit the program properly after every transaction to save your account data." << endl;
+        cout << "Failure to exit properly may result in data loss.\n\n";
+        system("pause");
+        system("cls");
+
+        cout << "\n------------------------------------------" << endl;
+        cout << "                ATM MAIN MENU               " << endl;
+        cout << "-------------------------------------------\n" << endl;
+        
+        cout << "  1. Balance Inquiry\n";
+        cout << "  2. Withdraw Money\n";
+        cout << "  3. Deposit Money\n";
+        cout << "  4. Change PIN\n";
+        cout << "  5. Fund Transfer\n";
+        cout << "  6. Exit\n";
+        cout << "\n------------------------------------------" << endl;
+        cout << "Enter choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1:
+                system("cls");
+                cout <<"\n";
+                cout << "==========================================" << endl;
+                cout << "             BALANCE INQUIRY              " << endl;
+                cout << "==========================================\n" << endl;
+                balanceInquiry(accountIndex);
+                break;
+            case 2:
+                system("cls");
+                cout << "\n==========================================" << endl;
+                cout << "             WITHDRAW MONEY                " << endl;
+                cout << "==========================================\n" << endl;
+                withdrawMoney(accountIndex);
+                break;
+            case 3:
+                system("cls");
+                cout << "\n==========================================" << endl;
+                cout << "             DEPOSIT MONEY                 " << endl;
+                cout << "==========================================\n" << endl;
+                depositMoney(accountIndex);
+                break;
+            case 4:
+                system("cls");
+                cout << "\n==========================================" << endl;
+                cout << "              CHANGE PIN                   " << endl;
+                cout << "==========================================\n" << endl;
+                changePin(accountIndex);
+                break;
+            case 5:
+                system("cls");
+                cout << "\n==========================================" << endl;
+                cout << "            FUND TRANSFER                  " << endl;
+                cout << "==========================================\n" << endl;
+                fundTransfer(accountIndex);
+                break;
+            case 6:
+                system("cls");
+                cout << "\n============================================" << endl;
+                cout << " Thank you for using POWER BANK ATM MACHINE " << endl;
+                cout << "============================================\n" << endl;
+                break;
+            default:
+                cout << "\n------------------------------------------" << endl;
+                cout << "             Invalid choice." << endl;
+                cout << "------------------------------------------\n" << endl;
+        }
+        system("pause");
+    } while (choice != 6);
+}
 
 // MAIN FUNCTION
+int main() {
+    // Load account data from file at startup
+    loadAccountsFromFile();
+
+    int option;
+    do {
+        system("cls");
+        cout << "\n==========================================" << endl;
+        cout << "         WELCOME TO POWER BANK            " << endl;
+        cout << "==========================================\n" << endl;
+        
+        cout << "           Main Menu Options:             " << endl;
+        cout << "------------------------------------------\n" << endl;
+        cout << "  1. Register Account" << endl;
+        cout << "  2. Access ATM" << endl;
+        cout << "  3. Delete Account" << endl;  // Added delete account option
+        cout << "  4. Exit" << endl;
+        cout << "\n------------------------------------------" << endl;
+        cout << "Enter choice: ";
+        cin >> option;
+
+        switch (option) {
+            case 1:
+                system("cls");
+                cout << "\n==========================================" << endl;
+                cout << "            REGISTER ACCOUNT              " << endl;
+                cout << "==========================================\n" << endl;
+                registerAccount();
+                break;
+            case 2:
+                system("cls");
+                atmMenu();
+                break;
+            case 3:
+                system("cls");
+                cout << "\n==========================================" << endl;
+                cout << "             DELETE ACCOUNT               " << endl;
+                cout << "==========================================\n" << endl;
+                deleteAccount(); // Call the new deleteAccount function
+                break;
+            case 4:
+                system("cls");
+                // Save account data to file before exiting
+                saveAccountsToFile();
+                cout << "\n==========================================" << endl;
+                cout << "    Exiting POWER BANK ATM MACHINE        " << endl;
+                cout << "==========================================\n" << endl;
+                break;
+            default:
+                cout << "\n------------------------------------------" << endl;
+                cout << "            Invalid choice. Try again." << endl;
+                cout << "------------------------------------------\n" << endl;
+        }
+        system("pause");
+    } while (option != 4);
+
+    return 0;
+}
+
