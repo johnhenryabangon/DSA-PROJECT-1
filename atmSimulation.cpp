@@ -39,10 +39,10 @@ bool isValidContactNumber(const string& contactNumber){
 }
 
 // FUNCTION FOR ENCRYPTION
-string encyptPin(string pin){
-    char key = 'K';
+string encryptPin(string pin) {
+    char key = 'K'; // Simple key for XOR encryption
     string encryptedPin = pin;
-    for (size_t i =0; i < pin.size(); i++){
+    for (size_t i = 0; i < pin.size(); i++) {
         encryptedPin[i] = pin[i] ^ key;
     }
     return encryptedPin;
@@ -405,6 +405,7 @@ void changePin(int accountIndex) {
     cout << "         POWER BANK - CHANGE PIN          " << endl;
     cout << "==========================================\n" << endl;
 
+    // Ensure the user inputs a valid 6-digit PIN
     do {
         cout << "Enter new 6-digit PIN: ";
         newPin = getHiddenPin();  // Capture hidden PIN input
