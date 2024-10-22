@@ -10,6 +10,7 @@
 #include <set>
 #include <ctime>
 #include <cctype>
+#include <windows.h>
 
 using namespace std;
 
@@ -85,12 +86,14 @@ bool createATMCardFile(const Account &account) {
         cardFile << account.balance << endl;
         cardFile.close();
 
-        cout << "ATM card file created successfully at: " << endl;
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
+        cout << "ATM card created successfully" << endl;
         return true;
     } else {
         // Error message
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
         cout << "Error: Unable to create ATM card file." << endl;
-        cout << "There is no card detected." << endl;
+        cout << "There is no card detected.\n\n" << endl;
         return false;
     }
 
@@ -104,7 +107,10 @@ bool readATMCardFile(int accountNumber, const string &enteredPin, Account &loade
     ifstream cardFile(usbPath + filename);
 
     if (!cardFile) {
-        cout << "\nATM card not found. Please insert the correct card.\n\n" << endl;
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
+        cout << "\n*****************************************************" << endl;
+        cout << "  ATM card not found. Please insert the correct card." << endl;
+        cout << "*****************************************************\n\n" << endl;
         return false;
     }
 
@@ -130,8 +136,9 @@ void updateATMCardFile(const Account &account) {
     string filename = to_string(account.accountNumber) + "_card.txt";
     ofstream cardFile(usbPath + filename);
 
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
     cout << "\n===========================================" << endl;
-    cout << "           UPDATING ATM CARD FILE         " << endl;
+    cout << "              UPDATING ATM CARD         " << endl;
     cout << "===========================================\n" << endl;
 
     if (cardFile) {
@@ -143,8 +150,10 @@ void updateATMCardFile(const Account &account) {
         cardFile << account.balance << endl;
         cardFile.close();
 
-        cout << "ATM card file updated successfully" << endl;
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
+        cout << "      ATM card updated successfully" << endl;
     } else {
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
         cout << "Error: Unable to update ATM card file." << endl;
     }
 
@@ -169,10 +178,12 @@ void saveAccountsToFile() {
         }
 
         outFile.close();
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
         cout << "\n===========================================" << endl;
         cout << "         ACCOUNTS SAVED SUCCESSFULLY       " << endl;
         cout << "===========================================\n" << endl;
     } else {
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
         cout << "\n===========================================" << endl;
         cout << "          ERROR: FAILED TO SAVE DATA       " << endl;
         cout << "===========================================\n" << endl;
@@ -249,44 +260,56 @@ int generateUniqueAccountNumber() {
 // REGISTRATION MODULE - ENROLL NEW ACCOUNTS
 void registerAccount() {
     if (accountCount >= MAX_ACCOUNTS) {
+        // Change text color to Red for error
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
         cout << "\n==========================================" << endl;
         cout << "     Cannot create more accounts.          " << endl;
         cout << "       Maximum limit reached.              " << endl;
         cout << "==========================================\n" << endl;
+
+        // Reset text color to default (White)
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         system("pause");
         return;
     }
 
     system("cls");
     Account newAccount;
-    
-    
     char confirm;
 
+    // Change text color to Yellow for registration welcome message
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
     cout << "\n==========================================" << endl;
     cout << "        WELCOME TO POWER BANK              " << endl;
     cout << "==========================================\n" << endl;
+
+    // Reset text color to default
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
 
     cout << "ATM Account Registration" << endl;
     cout << "Do you want to continue with registration?" << endl;
     cout << " (1 to proceed / 0 to cancel): ";
     cin >> confirm;
 
-    if (tolower(confirm) == '0') {  // If the user chooses to cancel
+    if (tolower(confirm) == '0') {
+        // Change text color to Light Red for cancellation message
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 12);
         cout << "\n==========================================" << endl;
         cout << "     Registration canceled. Returning      " << endl;
         cout << "         to main menu.                     " << endl;
         cout << "==========================================\n" << endl;
+
+        // Reset text color to default
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         system("pause");
-        return;  // Exit the function, returning to main menu
+        return;
     } else if (tolower(confirm) == '1') {
 
-        // Generate a unique account number
         newAccount.accountNumber = generateUniqueAccountNumber();
         cout << "\nGenerated Account Number: " << newAccount.accountNumber << endl;
 
         cout << "Enter Account Name: ";
-        cin.ignore();  // Clear the input buffer
+        cin.ignore();  
         getline(cin, newAccount.accountName);
 
         cout << "Enter Birthday (dd/mm/yyyy): ";
@@ -298,19 +321,28 @@ void registerAccount() {
             getline(cin, contactNumber);
 
             if (!isValidContactNumber(contactNumber)) {
+                // Change text color to Red for error message
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
                 cout << "Invalid contact number. Please enter a valid 11-digit number." << endl;
+
+                // Reset text color to default
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
             }
         } while (!isValidContactNumber(contactNumber));
 
         newAccount.contactNumber = contactNumber;
 
-        // Ensure a valid deposit amount
         while (true) {
             cout << "Enter Initial Deposit (minimum " << MIN_DEPOSIT << "): ";
             cin >> newAccount.balance;
 
             if (newAccount.balance < MIN_DEPOSIT) {
+                // Change text color to Red for error message
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
                 cout << "Initial deposit must be at least " << MIN_DEPOSIT << ". Try again." << endl;
+
+                // Reset text color to default
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
             } else {
                 break;
             }
@@ -320,26 +352,37 @@ void registerAccount() {
 
         string pin;
         cout << "Set a 6-digit PIN: ";
-        pin = getHiddenPin();  // Capture hidden PIN input
+        pin = getHiddenPin();  
         newAccount.pinCode = encryptPin(pin);
 
-        // Add account to the list and save to file
         accounts[accountCount++] = newAccount;
 
         if (createATMCardFile(newAccount)) {
+            // Change text color to Green for success message
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
             cout << "\n==========================================" << endl;
             cout << "      Account registered successfully!     " << endl;
             cout << " Enjoy powerful transactions with POWER BANK!" << endl;
             cout << "==========================================\n" << endl;
+
+            // Reset text color to default
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         }
 
     } else {
+        // Change text color to Red for error message
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
         cout << "\n==========================================" << endl;
         cout << "       Error. Returning to main menu.      " << endl;
         cout << "==========================================\n" << endl;
+
+        // Reset text color to default
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         system("pause");
         return;
     }
+
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 12);
 
     cout << "IMPORTANT: Ensure you exit the program properly to save your account data." << endl;
     cout << "Failure to exit properly may result in data loss.\n" << endl;
@@ -351,9 +394,14 @@ void deleteAccount() {
     int accountNumber;
     system("cls");
 
+    // Change text color to Yellow for delete account header
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
     cout << "\n==========================================" << endl;
     cout << "          DELETE ATM ACCOUNT              " << endl;
     cout << "==========================================\n" << endl;
+
+    // Reset text color to default (White)
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
 
     cout << "Enter the account number to delete: ";
     cin >> accountNumber;
@@ -361,9 +409,14 @@ void deleteAccount() {
     int accountIndex = findAccount(accountNumber);
 
     if (accountIndex == -1) {
+        // Change text color to Red for account not found
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
         cout << "\n==========================================" << endl;
         cout << "            ACCOUNT NOT FOUND             " << endl;
         cout << "==========================================\n" << endl;
+
+        // Reset text color to default
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         system("pause");
         return;
     }
@@ -380,35 +433,62 @@ void deleteAccount() {
     cin >> confirm;
 
     if (tolower(confirm) == '0') {
+        // Change text color to Light Red for cancellation
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 12);
         cout << "\nDeletion canceled. Returning to main menu.\n" << endl;
+
+        // Reset text color to default
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         system("pause");
         return;
     } else if (tolower(confirm) == '1') {
+        // Move accounts after the deleted one up by 1 position
         for (int i = accountIndex; i < accountCount - 1; i++) {
             accounts[i] = accounts[i + 1];
         }
         accountCount--;
 
+        // Change text color to Green for successful deletion
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
         cout << "\n==========================================" << endl;
         cout << "         ACCOUNT DELETED SUCCESSFULLY     " << endl;
         cout << "==========================================\n" << endl;
 
+        // Reset text color to default
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+
         // Delete ATM card individual file
         string filename = "D:/" + to_string(accountNumber) + "_card.txt";
         if (remove(filename.c_str()) != 0) {
-            cout << "Error deleting ATM card file." << endl;
+            // Change text color to Red for file deletion error
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
+            cout << "Error deleting ATM card account." << endl;
+
+            // Reset text color to default
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         } else {
+            // Change text color to Green for successful file deletion
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
             cout << "ATM card file deleted successfully." << endl;
+
+            // Reset text color to default
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         }
 
         // Save updated accounts to file
         saveAccountsToFile();
     } else {
+        // Change text color to Red for invalid input
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
         cout << "\nInvalid input. Returning to main menu.\n" << endl;
+
+        // Reset text color to default
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
     }
 
     system("pause");
 }
+
 
 // CHANGE PIN
 void changePin(int accountIndex) {
@@ -469,8 +549,10 @@ void balanceInquiry(int accountIndex) {
     cout << "Current Balance: PHP " << accounts[accountIndex].balance << endl;
     cout << "------------------------------------------\n" << endl;
 
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 6);
     cout << "Note: Please make sure to properly exit the system to ensure data is saved." << endl;
 
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
     cout << "\n==========================================" << endl;
     cout << "           Thank you for using            " << endl;
     cout << "          POWER BANK ATM SERVICE          " << endl;
@@ -578,6 +660,7 @@ void fundTransfer(int accountIndex) {
     // Find the target account
     int targetIndex = findAccount(targetAccountNumber);
     if (targetIndex == -1) {
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
         cout << "\n===========================================" << endl;
         cout << "           ERROR: ACCOUNT NOT FOUND        " << endl;
         cout << "===========================================\n" << endl;
@@ -593,6 +676,7 @@ void fundTransfer(int accountIndex) {
 
     // Check if the source account has enough funds
     if (transferAmount > accounts[accountIndex].balance) {
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
         cout << "\n===========================================" << endl;
         cout << "          ERROR: INSUFFICIENT FUNDS         " << endl;
         cout << "===========================================\n" << endl;
@@ -608,9 +692,12 @@ void fundTransfer(int accountIndex) {
     updateATMCardFile(accounts[accountIndex]);
     updateATMCardFile(accounts[targetIndex]);
 
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
     cout << "\n===========================================" << endl;
     cout << "            TRANSFER SUCCESSFUL!            " << endl;
     cout << "===========================================\n" << endl;
+
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
     cout << "Amount Transferred: " << transferAmount << endl;
     cout << "Your new balance: " << accounts[accountIndex].balance << endl;
     cout << "Target account new balance: " << accounts[targetIndex].balance << "\n" << endl;
@@ -639,10 +726,14 @@ void atmMenu() {
     string pin;
     system("cls");
 
+    // Change text color to Yellow for the header
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
     cout << "\n==========================================" << endl;
-    cout << "     Welcome to POWER BANK ATM MACHINE       " << endl;
-    cout << "===========================================\n" << endl;
+    cout << "     Welcome to POWER BANK ATM MACHINE    " << endl;
+    cout << "==========================================\n" << endl;
 
+    // Reset text color to White
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
     cout << "\nPlease insert your card (enter account number): ";
     cin >> accountNumber;
 
@@ -655,17 +746,24 @@ void atmMenu() {
     int choice;
     do {
         system("cls");
-        cout << "\n==========================================" << endl;
-        cout << "         POWER BANK ATM MACHINE MENU        " << endl;
-        cout << "===========================================\n" << endl;
 
+        // Change text color to Yellow for the menu header
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
+        cout << "\n==========================================" << endl;
+        cout << "         POWER BANK ATM MACHINE MENU      " << endl;
+        cout << "==========================================\n" << endl;
+
+        // Reset text color to RED for the instructions
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 12);
         cout << "IMPORTANT: Ensure you exit the program properly after every transaction to save your account data." << endl;
         cout << "Failure to exit properly may result in data loss.\n\n";
         system("pause");
         system("cls");
 
+        // Change text color to Light Cyan for the ATM main menu
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
         cout << "\n------------------------------------------" << endl;
-        cout << "                ATM MAIN MENU               " << endl;
+        cout << "                ATM MAIN MENU             " << endl;
         cout << "-------------------------------------------\n" << endl;
 
         cout << "  1. Balance Inquiry\n";
@@ -674,6 +772,9 @@ void atmMenu() {
         cout << "  4. Change PIN\n";
         cout << "  5. Fund Transfer\n";
         cout << "  6. Exit\n";
+
+        // Reset text color to White for input prompt
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         cout << "\n------------------------------------------" << endl;
         cout << "Enter choice: ";
         cin >> choice;
@@ -681,50 +782,90 @@ void atmMenu() {
         switch (choice) {
             case 1:
                 system("cls");
-                cout <<"\n";
-                cout << "==========================================" << endl;
+
+                // Change text color to Green for Balance Inquiry
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 10);
+                cout << "\n==========================================" << endl;
                 cout << "             BALANCE INQUIRY              " << endl;
                 cout << "==========================================\n" << endl;
+
+                // Reset text color to White
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
                 balanceInquiry(accountIndex);
                 break;
             case 2:
                 system("cls");
+
+                // Change text color to Green for Withdraw Money
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 10);
                 cout << "\n==========================================" << endl;
-                cout << "             WITHDRAW MONEY                " << endl;
+                cout << "             WITHDRAW MONEY               " << endl;
                 cout << "==========================================\n" << endl;
+
+                // Reset text color to White
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
                 withdrawMoney(accountIndex);
                 break;
             case 3:
                 system("cls");
+
+                // Change text color to Green for Deposit Money
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 10);
                 cout << "\n==========================================" << endl;
-                cout << "             DEPOSIT MONEY                 " << endl;
+                cout << "             DEPOSIT MONEY                " << endl;
                 cout << "==========================================\n" << endl;
+
+                // Reset text color to White
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
                 depositMoney(accountIndex);
                 break;
             case 4:
                 system("cls");
+
+                // Change text color to Yellow for Change PIN
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
                 cout << "\n==========================================" << endl;
-                cout << "              CHANGE PIN                   " << endl;
+                cout << "              CHANGE PIN                  " << endl;
                 cout << "==========================================\n" << endl;
+
+                // Reset text color to White
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
                 changePin(accountIndex);
                 break;
             case 5:
                 system("cls");
+
+                // Change text color to Green for Fund Transfer
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 10);
                 cout << "\n==========================================" << endl;
-                cout << "            FUND TRANSFER                  " << endl;
+                cout << "            FUND TRANSFER                 " << endl;
                 cout << "==========================================\n" << endl;
+
+                // Reset text color to White
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
                 fundTransfer(accountIndex);
                 break;
             case 6:
                 system("cls");
+
+                // Change text color to Green for exit message
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
                 cout << "\n============================================" << endl;
                 cout << " Thank you for using POWER BANK ATM MACHINE " << endl;
                 cout << "============================================\n" << endl;
+
+                // Reset text color to White
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
                 break;
             default:
+                // Change text color to Red for invalid input
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
                 cout << "\n------------------------------------------" << endl;
                 cout << "             Invalid choice." << endl;
                 cout << "------------------------------------------\n" << endl;
+
+                // Reset text color to White
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         }
         system("pause");
     } while (choice != 6);
@@ -738,16 +879,27 @@ int main() {
     int option;
     do {
         system("cls");
+
+        // Change text color to Yellow for the header
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
         cout << "\n==========================================" << endl;
         cout << "         WELCOME TO POWER BANK            " << endl;
         cout << "==========================================\n" << endl;
 
+        // Change text color to White for the main menu
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         cout << "           Main Menu Options:             " << endl;
         cout << "------------------------------------------\n" << endl;
+
+        // Change text color to Light Cyan for menu options
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
         cout << "  1. Register Account" << endl;
         cout << "  2. Access ATM" << endl;
         cout << "  3. Delete Account" << endl;  // Added delete account option
         cout << "  4. Exit" << endl;
+
+        // Change text color back to White for prompt
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         cout << "\n------------------------------------------" << endl;
         cout << "Enter choice: ";
         cin >> option;
@@ -755,9 +907,14 @@ int main() {
         switch (option) {
             case 1:
                 system("cls");
+                // Change text color to Yellow for registration header
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
                 cout << "\n==========================================" << endl;
                 cout << "            REGISTER ACCOUNT              " << endl;
                 cout << "==========================================\n" << endl;
+
+                // Reset color to White
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
                 registerAccount();
                 break;
             case 2:
@@ -766,23 +923,39 @@ int main() {
                 break;
             case 3:
                 system("cls");
+                // Change text color to Red for deletion header
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
                 cout << "\n==========================================" << endl;
                 cout << "             DELETE ACCOUNT               " << endl;
                 cout << "==========================================\n" << endl;
+
+                // Reset color to White
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
                 deleteAccount(); // Call the new deleteAccount function
                 break;
             case 4:
                 system("cls");
                 // Save account data to file before exiting
                 saveAccountsToFile();
+
+                // Change text color to Green for exit message
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
                 cout << "\n==========================================" << endl;
                 cout << "    Exiting POWER BANK ATM MACHINE        " << endl;
                 cout << "==========================================\n" << endl;
+
+                // Reset color to White
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
                 break;
             default:
+                // Change text color to Red for invalid input
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
                 cout << "\n------------------------------------------" << endl;
                 cout << "            Invalid choice. Try again." << endl;
                 cout << "------------------------------------------\n" << endl;
+
+                // Reset color to White
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         }
         system("pause");
     } while (option != 4);
