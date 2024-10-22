@@ -3,15 +3,22 @@
 #include <string>
 #include <iomanip>
 #include <cstdlib>
+#include <random>
 #include <conio.h>
+#include <chrono>
+#include <thread>
+#include <set>
+#include <ctime>
+#include <cctype>
 
 using namespace std;
 
-const int MAX_ACCOUNTS = 100; // MAXIMUM NUMBER OF ACCOUNTS
-const int MIN_DEPOSIT = 5000; // MINIMUM DEPOSIT
+const int MAX_ACCOUNTS = 100; // Maximum number of accounts
+const int MIN_DEPOSIT = 5000; // Minimum deposit
 const int PIN_LENGTH = 6;
-const int ACCOUNT_NUMBER_LENGTH = 5; // EXPECTED LENGTH FOR THE ACCOUNG NUMBER
-const int CONTACT_NUMBER_LENGTH = 11; // MAX LENGTH OF CONTACT NUMBER
+const int ACCOUNT_ID_LENGTH= 5; // Define the expected length for the account number
+const int CONTACT_NUMBER_LENGTH = 11; // Max length of contact number
+set<int> usedAccountIDs;
 
 struct Account {
     int accountNumber;
@@ -215,6 +222,30 @@ string getHiddenPin() {
     return pin;
 }
 
+// UNIQUE ACCOUNT NUMBER GENERATOR
+int generateUniqueAccountNumber() {
+    srand(time(0));  // Seed the random number generator
+
+    int accountNumber;
+    bool isUnique;
+
+    do {
+        accountNumber = rand() % 90000 + 10000;  // Generate a 5-digit number (10000-99999)
+        isUnique = true;  // Assume the number is unique initially
+
+        // Check if the account number already exists
+        for (int i = 0; i < accountCount; i++) {
+            if (accounts[i].accountNumber == accountNumber) {
+                isUnique = false;  // If a match is found, mark as not unique
+                break;
+            }
+        }
+
+    } while (!isUnique);  // Repeat if the number is not unique
+
+    return accountNumber;
+}
+
 // REGISTRATION MODULE - ENROLL NEW ACCOUNTS
 void registerAccount() {
     if (accountCount >= MAX_ACCOUNTS) {
@@ -228,9 +259,8 @@ void registerAccount() {
 
     system("cls");
     Account newAccount;
-    string accountNumberStr;
-
-    // ADD: Option to cancel the registration before starting
+    
+    
     char confirm;
 
     cout << "\n==========================================" << endl;
@@ -251,25 +281,10 @@ void registerAccount() {
         return;  // Exit the function, returning to main menu
     } else if (tolower(confirm) == '1') {
 
-        // Proceed with registration if user confirms
-        do {
-            cout << "\nEnter Account Number (exactly 5 digits): ";
-            cin >> accountNumberStr;
+        // Generate a unique account number
+        newAccount.accountNumber = generateUniqueAccountNumber();
+        cout << "\nGenerated Account Number: " << newAccount.accountNumber << endl;
 
-            // Check if the input is exactly 5 digits
-            if (accountNumberStr.length() != ACCOUNT_NUMBER_LENGTH || !isdigit(accountNumberStr[0])) {
-                cout << "Error: Account number must be exactly 5 digits. Try again." << endl;
-            }
-            else if (findAccount(stoi(accountNumberStr)) != -1) {  // Check for uniqueness
-                cout << "Error: Account number is already registered. Try another one." << endl;
-            }
-            else {
-                newAccount.accountNumber = stoi(accountNumberStr); // Convert the valid string to integer
-                break;
-            }
-        } while (true);  // Repeat until a valid, unique account number is entered
-
-        // Continue with other account registration details...
         cout << "Enter Account Name: ";
         cin.ignore();  // Clear the input buffer
         getline(cin, newAccount.accountName);
@@ -310,18 +325,11 @@ void registerAccount() {
 
         // Add account to the list and save to file
         accounts[accountCount++] = newAccount;
+
         if (createATMCardFile(newAccount)) {
-            system("cls");
             cout << "\n==========================================" << endl;
             cout << "      Account registered successfully!     " << endl;
             cout << " Enjoy powerful transactions with POWER BANK!" << endl;
-            cout << "==========================================\n" << endl;
-        } else {
-            // If file creation failed
-            accountCount--; // Reduce account count since registration failed
-            cout << "\n==========================================" << endl;
-            cout << "       Error registering account.          " << endl;
-            cout << "  Please try registering again later.      " << endl;
             cout << "==========================================\n" << endl;
         }
 
@@ -337,7 +345,6 @@ void registerAccount() {
     cout << "Failure to exit properly may result in data loss.\n" << endl;
     system("pause");
 }
-
 
 // FUNCTION TO DELETE ACCOUNT
 void deleteAccount() {
