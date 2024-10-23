@@ -5,21 +5,38 @@
 #include <cstdlib>
 #include <random>
 #include <conio.h>
+#include <windows.h>
+#include <dbt.h>
 #include <chrono>
 #include <thread>
 #include <set>
 #include <ctime>
 #include <cctype>
-#include <windows.h>
+#include <regex>
+#include <limits>
 
 using namespace std;
 
-const int MAX_ACCOUNTS = 100; // Maximum number of accounts
-const int MIN_DEPOSIT = 5000; // Minimum deposit
+enum MenuOptions { REGISTER = 0, ACCESS_ATM, DELETE_ACCOUNT, EXIT };
+bool usbDeviceDetected = false;
+string usbDriveLetter;
+
+const int MAX_ACCOUNTS = 100; // MAXIMUM NUMBER OF ACCOUNTS
+const int MIN_DEPOSIT = 5000; // MINIMUM DEPOSITS
 const int PIN_LENGTH = 6;
-const int ACCOUNT_ID_LENGTH= 5; // Define the expected length for the account number
-const int CONTACT_NUMBER_LENGTH = 11; // Max length of contact number
+const int ACCOUNT_ID_LENGTH= 5; // DEFINE THE EXPECTED LENGTH FOR THE ACCOUNT NUMBER
+const int CONTACT_NUMBER_LENGTH = 11; // MAX LENGTH OF CONTACT NUMBER
+const int DAY_LENGTH = 2;  // LENGTH FOR DAY INPUT
+const int MONTH_LENGTH = 2; // LENGTH FOR MONTH INPUT
+const int YEAR_LENGTH = 4;  // LENGTH FOR YEAR INPUT
+const string GREEN = "\033[32m";  // GREEN COLOR
+const string RESET = "\033[0m";   // RESET COLOR
 set<int> usedAccountIDs;
+void atmMenu(int accountIndex);
+
+void setColor(int color) {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
+}
 
 struct Account {
     int accountNumber;
@@ -33,6 +50,136 @@ struct Account {
 Account accounts[MAX_ACCOUNTS];
 int accountCount = 0;
 
+// FUNCTION TO DISPLAY A CENTERED MESSAGE
+void displayCenteredMessage(const string& message, int width = 50) {
+    int pad = (width - message.size()) / 2;
+    for (int i = 0; i < pad; i++) cout << " ";
+    cout << message << endl;
+}
+
+// FUNCTION TO DISPLAY A SPLASH SCREEN
+void showSplashScreen() {
+    system("cls");
+    displayCenteredMessage("==========================================");
+    displayCenteredMessage("           WELCOME TO POWER BANK          ");
+    displayCenteredMessage("==========================================");
+    displayCenteredMessage("         Insert USB       ");
+}
+
+// FUNCTION TO DISPLAY A PROGRESS BAR
+void showProgressBar() {
+    const int barWidth = 40;
+    const int totalSteps = 15;
+    const int consoleWidth = 50;
+
+    system("cls");
+
+    displayCenteredMessage("==========================================");
+    displayCenteredMessage("            POWER BANK ATM LOADING        ");
+    displayCenteredMessage("==========================================");
+    displayCenteredMessage("Loading . . . ");
+
+    cout << endl;
+
+    int pad = (consoleWidth - barWidth - 2) / 2;
+
+    cout << string(pad, ' ') << "[";
+
+    for (int i = 0; i <= totalSteps; ++i) {
+
+        int pos = (i * barWidth) / totalSteps;
+        cout.flush();
+        cout << "\r" << string(pad, ' ') << "[";
+
+        cout << GREEN;
+        for (int j = 0; j < barWidth; ++j) {
+            if (j < pos) cout << "=";
+            else cout << " ";
+        }
+        cout << RESET;
+
+        cout << "]";
+        this_thread::sleep_for(chrono::milliseconds(50));
+    }
+
+    cout << endl << endl;
+    displayCenteredMessage("Loading complete!");
+}
+
+// FUNCTION TO GET THE DRIVE LETTER
+string getUsbDriveLetter() {
+    DWORD drives = GetLogicalDrives();
+    char driveLetter = 'A';
+    while (drives) {
+        if (drives & 1) {
+            string drive = string(1, driveLetter) + ":\\";
+            UINT driveType = GetDriveTypeA(drive.c_str());
+            if (driveType == DRIVE_REMOVABLE) {
+                return drive;
+            }
+        }
+        drives >>= 1;
+        driveLetter++;
+    }
+    return "";
+}
+
+// FUNCTION TO HANDLE USB DEVICE CHANGES
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    if (uMsg == WM_DEVICECHANGE) {
+        PDEV_BROADCAST_HDR pHdr = (PDEV_BROADCAST_HDR)lParam;
+        if (wParam == DBT_DEVICEARRIVAL && pHdr->dbch_devicetype == DBT_DEVTYP_VOLUME) {
+            usbDriveLetter = getUsbDriveLetter();
+            if (!usbDriveLetter.empty()) {
+                usbDeviceDetected = true;
+            }
+        }
+    }
+    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
+
+// FUNCTION TO WAIT FOR USB INSERTION
+bool waitForUsbInsert() {
+
+    WNDCLASSA windowClass = { 0 };
+    windowClass.lpfnWndProc = WindowProc;
+    windowClass.lpszClassName = "UsbDetectionClass";
+
+    RegisterClassA(&windowClass);
+
+    HWND hwnd = CreateWindowA(windowClass.lpszClassName, "USB Detection", 0, 0, 0, 0, 0, nullptr, nullptr, nullptr, nullptr);
+
+    if (!hwnd) {
+        cerr << "Failed to create window for USB detection" << endl;
+        return false;
+    }
+
+    DEV_BROADCAST_DEVICEINTERFACE dbdi = { 0 };
+    dbdi.dbcc_size = sizeof(DEV_BROADCAST_DEVICEINTERFACE);
+    dbdi.dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE;
+    HDEVNOTIFY hDeviceNotify = RegisterDeviceNotification(hwnd, &dbdi, DEVICE_NOTIFY_WINDOW_HANDLE);
+
+    if (!hDeviceNotify) {
+        cerr << "Failed to register for device notifications" << endl;
+        return false;
+    }
+
+    showSplashScreen();
+
+    MSG msg = { 0 };
+
+    while (!usbDeviceDetected) {
+        while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+        this_thread::sleep_for(chrono::milliseconds(100));
+    }
+
+    DestroyWindow(hwnd);
+    return usbDeviceDetected;
+}
+
 // FUNCTION TO CHECK IF CONTACT NUMBER IS VALID
 bool isValidContactNumber(const string& contactNumber){
     if (contactNumber.length() != CONTACT_NUMBER_LENGTH){
@@ -44,6 +191,38 @@ bool isValidContactNumber(const string& contactNumber){
         }
     }
     return true;
+}
+
+bool isDigitsOnly(const string& str) {
+    return regex_match(str, regex("\\d+"));
+}
+
+bool isValidDay(int day) {
+    return day >= 1 && day <= 31;
+}
+
+bool isValidMonth(int month) {
+    return month >= 1 && month <= 12;
+}
+
+bool isValidYear(int year) {
+    return year >= 1900 && year <= 2023;
+}
+
+int getValidNumericInput(int minValue, int maxValue) {
+    int input;
+    while (true) {
+        cin >> input;
+
+        if (cin.fail() || input < minValue || input > maxValue) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Invalid input. Please enter a number between " << minValue << " and " << maxValue << ": ";
+        } else {
+            break;
+        }
+    }
+    return input;
 }
 
 // FUNCTION FOR ENCRYPTION
@@ -66,15 +245,16 @@ int findAccount(int accountNumber){
     return -1;
 }
 
-// Function to create ATM card (file) on the flash drive - for individual account
+// FUNCTION TO CREAT A ATM CARD FILE
 bool createATMCardFile(const Account &account) {
     string usbPath = "D:/";
     string filename = to_string(account.accountNumber) + "_card.txt";
     ofstream cardFile(usbPath + filename);
 
-    cout << "\n===========================================" << endl;
-    cout << "         CREATING ATM CARD FILE           " << endl;
-    cout << "===========================================\n" << endl;
+    system("cls");
+    displayCenteredMessage("===========================================");
+    displayCenteredMessage("CREATING ATM CARD FILE");
+    displayCenteredMessage("===========================================");
 
     if (cardFile) {
         // Write account details to the file
@@ -87,18 +267,18 @@ bool createATMCardFile(const Account &account) {
         cardFile.close();
 
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
-        cout << "ATM card created successfully" << endl;
+        displayCenteredMessage("ATM card created successfully");
         return true;
     } else {
-        // Error message
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-        cout << "Error: Unable to create ATM card file." << endl;
-        cout << "There is no card detected.\n\n" << endl;
+        displayCenteredMessage("Error: Unable to create ATM card file.");
+        displayCenteredMessage("There is no card detected.");
         return false;
     }
 
-    cout << "\n===========================================" << endl;
-    system("pause");  }
+    displayCenteredMessage("===========================================");
+    system("pause");
+}
 
 // FUNCTION TO READ ATM CARD FILE
 bool readATMCardFile(int accountNumber, const string &enteredPin, Account &loadedAccount) {
@@ -107,39 +287,45 @@ bool readATMCardFile(int accountNumber, const string &enteredPin, Account &loade
     ifstream cardFile(usbPath + filename);
 
     if (!cardFile) {
+        system("cls");
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-        cout << "\n*****************************************************" << endl;
-        cout << "  ATM card not found. Please insert the correct card." << endl;
-        cout << "*****************************************************\n\n" << endl;
+        displayCenteredMessage("======================================================");
+        displayCenteredMessage("ATM card not found. Please insert the correct card.");
+        displayCenteredMessage("======================================================");
+        system("pause");
         return false;
     }
 
     cardFile >> loadedAccount.accountNumber;
-    cardFile.ignore(); // To skip newline after number
+    cardFile.ignore();
     getline(cardFile, loadedAccount.accountName);
     getline(cardFile, loadedAccount.birthday);
     getline(cardFile, loadedAccount.contactNumber);
     cardFile >> loadedAccount.pinCode;
     cardFile >> loadedAccount.balance;
 
-    if (encryptPin(enteredPin) == loadedAccount.pinCode) {
-        return true;
+    cardFile.close();
+
+    string encryptedPin = encryptPin(enteredPin);
+    if (encryptedPin == loadedAccount.pinCode) {
+        return true;  
     } else {
-        cout << "Incorrect PIN." << endl;
-        return false;
+        displayCenteredMessage("Incorrect PIN.");
+        return false;  
     }
 }
 
-// Function to update the ATM card (file) after transactions
+// FUNCTION TO UPDATE THE ATM CARD FILE
 void updateATMCardFile(const Account &account) {
     string usbPath = "D:/";
     string filename = to_string(account.accountNumber) + "_card.txt";
     ofstream cardFile(usbPath + filename);
 
+    system("cls");
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
-    cout << "\n===========================================" << endl;
-    cout << "              UPDATING ATM CARD         " << endl;
-    cout << "===========================================\n" << endl;
+    displayCenteredMessage("===========================================");
+    displayCenteredMessage("UPDATING ATM CARD");
+    displayCenteredMessage("===========================================");
 
     if (cardFile) {
         cardFile << account.accountNumber << endl;
@@ -151,13 +337,13 @@ void updateATMCardFile(const Account &account) {
         cardFile.close();
 
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
-        cout << "      ATM card updated successfully" << endl;
+        displayCenteredMessage("ATM card updated successfully");
     } else {
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-        cout << "Error: Unable to update ATM card file." << endl;
+        displayCenteredMessage("Error: Unable to update ATM card file.");
     }
 
-    cout << "\n===========================================" << endl;
+    displayCenteredMessage("===========================================");
     system("pause");
 }
 
@@ -179,15 +365,15 @@ void saveAccountsToFile() {
 
         outFile.close();
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
-        cout << "\n===========================================" << endl;
-        cout << "         ACCOUNTS SAVED SUCCESSFULLY       " << endl;
-        cout << "===========================================\n" << endl;
+        displayCenteredMessage("===========================================");
+        displayCenteredMessage("ACCOUNTS SAVED SUCCESSFULLY");
+        displayCenteredMessage("===========================================");
     } else {
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-        cout << "\n===========================================" << endl;
-        cout << "          ERROR: FAILED TO SAVE DATA       " << endl;
-        cout << "===========================================\n" << endl;
-        cout << "There was an issue saving the account.\n" << endl;
+        displayCenteredMessage("===========================================");
+        displayCenteredMessage("ERROR: FAILED TO SAVE DATA");
+        displayCenteredMessage("===========================================");
+        displayCenteredMessage("There was an issue saving the account.");
     }
 
     system("pause");
@@ -260,14 +446,12 @@ int generateUniqueAccountNumber() {
 // REGISTRATION MODULE - ENROLL NEW ACCOUNTS
 void registerAccount() {
     if (accountCount >= MAX_ACCOUNTS) {
-        // Change text color to Red for error
+        system("cls");
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-        cout << "\n==========================================" << endl;
-        cout << "     Cannot create more accounts.          " << endl;
-        cout << "       Maximum limit reached.              " << endl;
-        cout << "==========================================\n" << endl;
-
-        // Reset text color to default (White)
+        displayCenteredMessage("==========================================", 50);
+        displayCenteredMessage("Cannot create more accounts.", 50);
+        displayCenteredMessage("Maximum limit reached.", 50);
+        displayCenteredMessage("==========================================\n", 50);
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         system("pause");
         return;
@@ -279,53 +463,67 @@ void registerAccount() {
 
     // Change text color to Yellow for registration welcome message
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
-    cout << "\n==========================================" << endl;
-    cout << "        WELCOME TO POWER BANK              " << endl;
-    cout << "==========================================\n" << endl;
-
-    // Reset text color to default
+    displayCenteredMessage("==========================================", 50);
+    displayCenteredMessage("WELCOME TO POWER BANK", 50);
+    displayCenteredMessage("==========================================\n", 50);
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
 
-    cout << "ATM Account Registration" << endl;
-    cout << "Do you want to continue with registration?" << endl;
-    cout << " (1 to proceed / 0 to cancel): ";
+    displayCenteredMessage("ATM Account Registration", 50);
+    displayCenteredMessage("Do you want to continue with registration?", 50);
+    cout << "\t(1 to proceed / 0 to cancel): ";
     cin >> confirm;
 
     if (tolower(confirm) == '0') {
-        // Change text color to Light Red for cancellation message
+        system("cls");
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 12);
-        cout << "\n==========================================" << endl;
-        cout << "     Registration canceled. Returning      " << endl;
-        cout << "         to main menu.                     " << endl;
-        cout << "==========================================\n" << endl;
-
-        // Reset text color to default
+        displayCenteredMessage("==========================================", 50);
+        displayCenteredMessage("Registration canceled. Returning", 50);
+        displayCenteredMessage("to main menu.", 50);
+        displayCenteredMessage("==========================================\n", 50);
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         system("pause");
         return;
     } else if (tolower(confirm) == '1') {
 
         newAccount.accountNumber = generateUniqueAccountNumber();
-        cout << "\nGenerated Account Number: " << newAccount.accountNumber << endl;
+        cout << "\n\tGenerated Account Number: " << newAccount.accountNumber << endl;
 
-        cout << "Enter Account Name: ";
-        cin.ignore();  
+        // Centered input prompts for account registration
+        cout << "\tEnter Account Name: ";
+        cin.ignore();
         getline(cin, newAccount.accountName);
 
-        cout << "Enter Birthday (dd/mm/yyyy): ";
-        getline(cin, newAccount.birthday);
+        // BIRTHDAY INPUT IN SEPARATE PARTS
+        int day, month, year;
+        cout << "\tEnter Birthday\n";
 
+        // INPUT DAY
+        cout << "\tDay (1-31): ";
+        day = getValidNumericInput(1, 31);
+
+        // INPUT MONTH
+        cout << "\tMonth (1-12): ";
+        month = getValidNumericInput(1, 12);
+
+        // INPUT YEAR
+        cout << "\tYear (1900-2023): ";
+        year = getValidNumericInput(1900, 2023);
+
+        // FORMAT THE BIRTHDAY TO dd/mm/yyyy
+        newAccount.birthday = (day < 10 ? "0" : "") + to_string(day) + "/" +
+                              (month < 10 ? "0" : "") + to_string(month) + "/" + to_string(year);
+        cout << "\tBirthday: " << newAccount.birthday << endl;
+
+        // CONTACT NUMBER INPUT
         string contactNumber;
+        cin.ignore();
         do {
-            cout << "Enter Contact Number (11 digits): ";
+            cout << "\tEnter Contact Number (11 digits): ";
             getline(cin, contactNumber);
 
             if (!isValidContactNumber(contactNumber)) {
-                // Change text color to Red for error message
                 SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-                cout << "Invalid contact number. Please enter a valid 11-digit number." << endl;
-
-                // Reset text color to default
+                displayCenteredMessage("Invalid contact number.", 50);
                 SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
             }
         } while (!isValidContactNumber(contactNumber));
@@ -333,50 +531,42 @@ void registerAccount() {
         newAccount.contactNumber = contactNumber;
 
         while (true) {
-            cout << "Enter Initial Deposit (minimum " << MIN_DEPOSIT << "): ";
+            cout << "\tEnter Initial Deposit (minimum " << MIN_DEPOSIT << "): ";
             cin >> newAccount.balance;
 
             if (newAccount.balance < MIN_DEPOSIT) {
-                // Change text color to Red for error message
                 SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-                cout << "Initial deposit must be at least " << MIN_DEPOSIT << ". Try again." << endl;
-
-                // Reset text color to default
+                displayCenteredMessage("Initial deposit must be at least " + to_string(MIN_DEPOSIT) + ". Try again.", 50);
                 SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
             } else {
                 break;
             }
         }
 
-        system("pause");
-
         string pin;
-        cout << "Set a 6-digit PIN: ";
-        pin = getHiddenPin();  
+        cout << "\tSet a 6-digit PIN: ";
+        pin = getHiddenPin();
         newAccount.pinCode = encryptPin(pin);
 
         accounts[accountCount++] = newAccount;
 
         if (createATMCardFile(newAccount)) {
-            // Change text color to Green for success message
+            system("cls");
             SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
-            cout << "\n==========================================" << endl;
-            cout << "      Account registered successfully!     " << endl;
-            cout << " Enjoy powerful transactions with POWER BANK!" << endl;
-            cout << "==========================================\n" << endl;
+            displayCenteredMessage("==========================================", 50);
+            displayCenteredMessage("Account registered successfully!", 50);
+            displayCenteredMessage("Enjoy powerful transactions with POWER BANK!", 50);
+            displayCenteredMessage("==========================================\n", 50);
 
-            // Reset text color to default
             SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         }
 
     } else {
-        // Change text color to Red for error message
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-        cout << "\n==========================================" << endl;
-        cout << "       Error. Returning to main menu.      " << endl;
-        cout << "==========================================\n" << endl;
+        displayCenteredMessage("==========================================", 50);
+        displayCenteredMessage("Error. Returning to main menu.", 50);
+        displayCenteredMessage("==========================================\n", 50);
 
-        // Reset text color to default
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         system("pause");
         return;
@@ -384,8 +574,8 @@ void registerAccount() {
 
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 12);
 
-    cout << "IMPORTANT: Ensure you exit the program properly to save your account data." << endl;
-    cout << "Failure to exit properly may result in data loss.\n" << endl;
+    displayCenteredMessage("IMPORTANT: Ensure you exit the program properly to save your account data.", 50);
+    displayCenteredMessage("Failure to exit properly may result in data loss.", 50);
     system("pause");
 }
 
@@ -394,141 +584,121 @@ void deleteAccount() {
     int accountNumber;
     system("cls");
 
-    // Change text color to Yellow for delete account header
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
-    cout << "\n==========================================" << endl;
-    cout << "          DELETE ATM ACCOUNT              " << endl;
-    cout << "==========================================\n" << endl;
+    displayCenteredMessage("==========================================", 50);
+    displayCenteredMessage("DELETE ATM ACCOUNT", 50);
+    displayCenteredMessage("==========================================\n", 50);
 
-    // Reset text color to default (White)
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
 
-    cout << "Enter the account number to delete: ";
+    cout << "\tEnter the account number to delete: ";
     cin >> accountNumber;
 
     int accountIndex = findAccount(accountNumber);
 
     if (accountIndex == -1) {
-        // Change text color to Red for account not found
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-        cout << "\n==========================================" << endl;
-        cout << "            ACCOUNT NOT FOUND             " << endl;
-        cout << "==========================================\n" << endl;
+        displayCenteredMessage("==========================================", 50);
+        displayCenteredMessage("ACCOUNT NOT FOUND", 50);
+        displayCenteredMessage("==========================================\n", 50);
 
-        // Reset text color to default
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         system("pause");
         return;
     }
 
-    // Display account details before deletion
-    cout << "\nAccount Found:\n";
-    cout << "Account Number : " << accounts[accountIndex].accountNumber << endl;
-    cout << "Account Name   : " << accounts[accountIndex].accountName << endl;
-    cout << "Balance        : PHP " << accounts[accountIndex].balance << "\n" << endl;
+    cout << "\t\nAccount Found:\n";
+    cout << "\tAccount Number : " << accounts[accountIndex].accountNumber << endl;
+    cout << "\tAccount Name   : " << accounts[accountIndex].accountName << endl;
+    cout << "\tBalance        : PHP " << accounts[accountIndex].balance << "\n" << endl;
 
-    // Confirm deletion
+
     char confirm;
-    cout << "Are you sure you want to delete this account? (1 to confirm / 0 to cancel): ";
+    displayCenteredMessage("Are you sure you want to delete this account? (1 to confirm / 0 to cancel): ", 50);
     cin >> confirm;
 
     if (tolower(confirm) == '0') {
-        // Change text color to Light Red for cancellation
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 12);
-        cout << "\nDeletion canceled. Returning to main menu.\n" << endl;
+        displayCenteredMessage("\nDeletion canceled. Returning to main menu.\n", 50);
 
-        // Reset text color to default
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         system("pause");
         return;
     } else if (tolower(confirm) == '1') {
-        // Move accounts after the deleted one up by 1 position
+
         for (int i = accountIndex; i < accountCount - 1; i++) {
             accounts[i] = accounts[i + 1];
         }
         accountCount--;
-
-        // Change text color to Green for successful deletion
+        system("cls");
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
-        cout << "\n==========================================" << endl;
-        cout << "         ACCOUNT DELETED SUCCESSFULLY     " << endl;
-        cout << "==========================================\n" << endl;
-
-        // Reset text color to default
+        displayCenteredMessage("==========================================", 50);
+        displayCenteredMessage("ACCOUNT DELETED SUCCESSFULLY", 50);
+        displayCenteredMessage("==========================================\n", 50);
+        system("cls");
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
 
-        // Delete ATM card individual file
         string filename = "D:/" + to_string(accountNumber) + "_card.txt";
         if (remove(filename.c_str()) != 0) {
-            // Change text color to Red for file deletion error
-            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-            cout << "Error deleting ATM card account." << endl;
 
-            // Reset text color to default
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
+            displayCenteredMessage("Error deleting ATM card account.", 50);
+
             SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         } else {
-            // Change text color to Green for successful file deletion
             SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
-            cout << "ATM card file deleted successfully." << endl;
+            displayCenteredMessage("ATM card file deleted successfully.", 50);
 
-            // Reset text color to default
             SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
         }
 
-        // Save updated accounts to file
         saveAccountsToFile();
     } else {
-        // Change text color to Red for invalid input
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-        cout << "\nInvalid input. Returning to main menu.\n" << endl;
+        displayCenteredMessage("\nInvalid input. Returning to main menu.\n", 50);
 
-        // Reset text color to default
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
     }
 
     system("pause");
 }
 
-
 // CHANGE PIN
 void changePin(int accountIndex) {
     string newPin, confirmPin;
     system("cls");
 
-    cout << "\n==========================================" << endl;
-    cout << "         POWER BANK - CHANGE PIN          " << endl;
-    cout << "==========================================\n" << endl;
+    displayCenteredMessage("==========================================", 50);
+    displayCenteredMessage("POWER BANK - CHANGE PIN", 50);
+    displayCenteredMessage(" ==========================================\n", 50);
 
-    // Ensure the user inputs a valid 6-digit PIN
     do {
-        cout << "Enter new 6-digit PIN: ";
-        newPin = getHiddenPin();  // Capture hidden PIN input
+        cout << "\tEnter new 6-digit PIN: ";
+        newPin = getHiddenPin();
 
         if (newPin.length() != 6 || !isdigit(newPin[0])) {
-            cout << "\n==========================================" << endl;
-            cout << "         ERROR: INVALID PIN LENGTH        " << endl;
-            cout << "==========================================\n" << endl;
-            cout << "PIN must be exactly 6 digits. Please try again.\n" << endl;
+            displayCenteredMessage("==========================================", 50);
+            displayCenteredMessage("ERROR: INVALID PIN LENGTH", 50);
+            displayCenteredMessage("==========================================\n", 50);
+            displayCenteredMessage("PIN must be exactly 6 digits. Please try again.", 50);
         }
     } while (newPin.length() != 6 || !isdigit(newPin[0]));
 
-    // Confirm the new PIN to avoid mistakes
-    cout << "\nConfirm new 6-digit PIN: ";
+    cout << "\tConfirm new 6-digit PIN: ";
     confirmPin = getHiddenPin();
 
     if (newPin != confirmPin) {
-        cout << "\n==========================================" << endl;
-        cout << "          ERROR: PINS DO NOT MATCH        " << endl;
-        cout << "==========================================\n" << endl;
-        cout << "PIN change failed. Please try again.\n" << endl;
+        displayCenteredMessage("==========================================", 50);
+        displayCenteredMessage("ERROR: PINS DO NOT MATCH", 50);
+        displayCenteredMessage("==========================================\n", 50);
+        displayCenteredMessage("PIN change failed. Please try again.", 50);
     } else {
-        // Update the PIN if valid and confirmed
         accounts[accountIndex].pinCode = encryptPin(newPin);
         updateATMCardFile(accounts[accountIndex]);
 
-        cout << "\n==========================================" << endl;
-        cout << "           PIN CHANGED SUCCESSFULLY        " << endl;
-        cout << "==========================================\n" << endl;
+        displayCenteredMessage("==========================================", 50);
+        displayCenteredMessage("PIN CHANGED SUCCESSFULLY", 50);
+        displayCenteredMessage("==========================================\n", 50);
     }
 
     system("pause");
@@ -538,25 +708,27 @@ void changePin(int accountIndex) {
 void balanceInquiry(int accountIndex) {
     system("cls");
 
-    cout << "\n==========================================" << endl;
-    cout << "          POWER BANK SAVINGS INQUIRY       " << endl;
-    cout << "==========================================\n" << endl;
+    displayCenteredMessage("==========================================", 50);
+    displayCenteredMessage("POWER BANK SAVINGS INQUIRY", 50);
+    displayCenteredMessage("==========================================", 50);
 
-    cout << "Account Details" << endl;
-    cout << "------------------------------------------" << endl;
-    cout << "Account Number : " << accounts[accountIndex].accountNumber << endl;
-    cout << "Account Name   : " << accounts[accountIndex].accountName << endl;
-    cout << "Current Balance: PHP " << accounts[accountIndex].balance << endl;
-    cout << "------------------------------------------\n" << endl;
+    displayCenteredMessage("\tAccount Details", 50);
+    displayCenteredMessage("------------------------------------------\n");
+    cout << "\tAccount Number : " << accounts[accountIndex].accountNumber << endl;
+    cout << "\tAccount Name   : " << accounts[accountIndex].accountName << endl;
+    cout << "\tCurrent Balance: PHP " << accounts[accountIndex].balance << endl;
+    displayCenteredMessage("------------------------------------------\n");
 
+    displayCenteredMessage("------------------------------------------\n");
+    system("pause");
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 6);
-    cout << "Note: Please make sure to properly exit the system to ensure data is saved." << endl;
-
+    displayCenteredMessage("Note: Please make sure to properly exit the system to ensure data is saved.", 50);
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
-    cout << "\n==========================================" << endl;
-    cout << "           Thank you for using            " << endl;
-    cout << "          POWER BANK ATM SERVICE          " << endl;
-    cout << "==========================================" << endl;
+    system("cls");
+    displayCenteredMessage("==========================================", 50);
+    displayCenteredMessage("Thank you for using", 50);
+    displayCenteredMessage("POWER BANK ATM SERVICE", 50);
+    displayCenteredMessage("==========================================\n", 50);
 
     system("pause");
 }
@@ -566,78 +738,81 @@ void withdrawMoney(int accountIndex) {
     int amount;
     system("cls");
 
-    cout << "\n==========================================" << endl;
-    cout << "          POWER BANK - WITHDRAWAL          " << endl;
-    cout << "==========================================\n" << endl;
+    displayCenteredMessage("==========================================");
+    displayCenteredMessage("POWER BANK - WITHDRAWAL");
+    displayCenteredMessage("==========================================");
 
-    cout << "Account Number : " << accounts[accountIndex].accountNumber << endl;
-    cout << "Account Name   : " << accounts[accountIndex].accountName << endl;
-    cout << "------------------------------------------" << endl;
-    cout << "Current Balance: PHP " << accounts[accountIndex].balance << endl;
-    cout << "------------------------------------------" << endl;
+    cout << "\tAccount Number : " << accounts[accountIndex].accountNumber << endl;
+    cout << "\tAccount Name   : " << accounts[accountIndex].accountName << endl;
+    displayCenteredMessage("------------------------------------------");
+    cout << "\tCurrent Balance: PHP " << accounts[accountIndex].balance << endl;
+    displayCenteredMessage("------------------------------------------");
 
-    cout << "\nEnter amount to withdraw: PHP ";
+    cout << "\n\tEnter amount to withdraw: PHP ";
     cin >> amount;
 
     system("pause");
 
-    // Check for sufficient funds
-    if (amount > accounts[accountIndex].balance) {
-        cout << "\n==========================================" << endl;
-        cout << "         ERROR: INSUFFICIENT FUNDS         " << endl;
-        cout << "==========================================" << endl;
-        cout << "You do not have enough balance to withdraw that amount.\n" << endl;
-    } else {
-        // Successful withdrawal
+    if (amount > 0 && amount <= accounts[accountIndex].balance) {
         accounts[accountIndex].balance -= amount;
         updateATMCardFile(accounts[accountIndex]);
 
-        cout << "\n==========================================" << endl;
-        cout << "       WITHDRAWAL SUCCESSFUL               " << endl;
-        cout << "==========================================" << endl;
-        cout << "Amount Withdrawn: PHP " << amount << endl;
-        cout << "New Balance     : PHP " << accounts[accountIndex].balance << endl;
-        cout << "==========================================\n" << endl;
+        system("cls");
+        displayCenteredMessage("==========================================", 50);
+        displayCenteredMessage("WITHDRAWAL SUCCESSFUL", 50);
+        displayCenteredMessage("==========================================", 50);
+        cout << "\tAmount Withdrawn: PHP " << amount << endl;
+        cout << "\tNew Balance     : PHP " << accounts[accountIndex].balance << endl;
+        displayCenteredMessage("==========================================", 50);
+    } else {
+        system("cls");
+        displayCenteredMessage("==========================================", 50);
+        displayCenteredMessage("ERROR: INSUFFICIENT FUNDS", 50);
+        displayCenteredMessage("==========================================", 50);
+        displayCenteredMessage("You do not have enough balance to withdraw that amount.", 50);
     }
 
-    cout << "Please take your cash. Thank you for using POWER BANK." << endl;
+    displayCenteredMessage("Please take your cash. Thank you for using POWER BANK.");
 
     system("pause");
 }
+
 // DEPOSIT MONEY
 void depositMoney(int accountIndex) {
     int amount;
     system("cls");
 
-    cout << "\n==========================================" << endl;
-    cout << "           POWER BANK - DEPOSIT           " << endl;
-    cout << "==========================================\n" << endl;
+    displayCenteredMessage("==========================================");
+    displayCenteredMessage("POWER BANK - DEPOSIT");
+    displayCenteredMessage("==========================================");
 
-    cout << "Account Number : " << accounts[accountIndex].accountNumber << endl;
-    cout << "Account Name   : " << accounts[accountIndex].accountName << endl;
-    cout << "------------------------------------------" << endl;
-    cout << "Current Balance: PHP " << accounts[accountIndex].balance << endl;
-    cout << "------------------------------------------" << endl;
+    cout << "\tAccount Number : " << accounts[accountIndex].accountNumber << endl;
+    cout << "\tAccount Name   : " << accounts[accountIndex].accountName << endl;
+    displayCenteredMessage("------------------------------------------");
+    cout << "\tCurrent Balance: PHP " << accounts[accountIndex].balance << endl;
+    displayCenteredMessage("------------------------------------------");
 
-    cout << "\nEnter amount to deposit: PHP ";
+    cout << "\n\tEnter amount to deposit: PHP ";
     cin >> amount;
 
-    // Validate deposit amount
     if (amount <= 0) {
-        cout << "\n==========================================" << endl;
-        cout << "           ERROR: INVALID AMOUNT           " << endl;
-        cout << "==========================================\n" << endl;
-        cout << "Deposit amount must be greater than 0.\n" << endl;
+        system("cls");
+        displayCenteredMessage("==========================================");
+        displayCenteredMessage("ERROR: INVALID AMOUNT");
+        displayCenteredMessage("==========================================");
+        displayCenteredMessage("Deposit amount must be greater than 0.");
+        system("pause");
     } else {
         accounts[accountIndex].balance += amount;
-        updateATMCardFile(accounts[accountIndex]);  // Update the file after deposit
-
-        cout << "\n==========================================" << endl;
-        cout << "        DEPOSIT SUCCESSFUL                 " << endl;
-        cout << "==========================================\n" << endl;
-        cout << "Amount Deposited: PHP " << amount << endl;
-        cout << "New Balance     : PHP " << accounts[accountIndex].balance << endl;
-        cout << "==========================================\n" << endl;
+        updateATMCardFile(accounts[accountIndex]);
+        system("cls");
+        displayCenteredMessage("==========================================");
+        displayCenteredMessage("DEPOSIT SUCCESSFUL");
+        displayCenteredMessage("==========================================");
+        cout << "\tAmount Deposited: PHP " << amount << endl;
+        cout << "\tNew Balance     : PHP " << accounts[accountIndex].balance << endl;
+        displayCenteredMessage("==========================================");
+        system("pause");
     }
 
     system("pause");
@@ -647,60 +822,58 @@ void depositMoney(int accountIndex) {
 void fundTransfer(int accountIndex) {
     int targetAccountNumber, transferAmount;
 
-    // Display transfer fund menu
     system("cls");
-    cout << "\n===========================================" << endl;
-    cout << "         POWER BANK - FUND TRANSFER        " << endl;
-    cout << "===========================================\n" << endl;
+    displayCenteredMessage("===========================================");
+    displayCenteredMessage("POWER BANK - FUND TRANSFER");
+    displayCenteredMessage("===========================================");
 
-    // Ask for the target account number
-    cout << "Enter target account number for transfer: ";
+    cout << "\tEnter target account number for transfer: ";
     cin >> targetAccountNumber;
 
-    // Find the target account
     int targetIndex = findAccount(targetAccountNumber);
     if (targetIndex == -1) {
+        system("cls");
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-        cout << "\n===========================================" << endl;
-        cout << "           ERROR: ACCOUNT NOT FOUND        " << endl;
-        cout << "===========================================\n" << endl;
-        cout << "The target account number does not exist. Please try again.\n" << endl;
+        displayCenteredMessage("===========================================");
+        displayCenteredMessage("ERROR: ACCOUNT NOT FOUND");
+        displayCenteredMessage("===========================================");
+        displayCenteredMessage("The target account number does not exist. Please try again.");
         system("pause");
         return;
     }
 
-    cout << "Enter amount to transfer: ";
+    cout << "\tEnter amount to transfer: ";
     cin >> transferAmount;
 
-    cout << "\n-------------------------------------------" << endl;
+    displayCenteredMessage("-------------------------------------------");
 
-    // Check if the source account has enough funds
     if (transferAmount > accounts[accountIndex].balance) {
+        system("cls");
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-        cout << "\n===========================================" << endl;
-        cout << "          ERROR: INSUFFICIENT FUNDS         " << endl;
-        cout << "===========================================\n" << endl;
-        cout << "You do not have enough balance for this transaction.\n" << endl;
+        displayCenteredMessage("===========================================");
+        displayCenteredMessage("ERROR: INSUFFICIENT FUNDS");
+        displayCenteredMessage("===========================================");
+        displayCenteredMessage("You do not have enough balance for this transaction.");
         system("pause");
         return;
     }
+    system("cls");
 
-    // Perform the transfer
     accounts[accountIndex].balance -= transferAmount;
     accounts[targetIndex].balance += transferAmount;
 
     updateATMCardFile(accounts[accountIndex]);
     updateATMCardFile(accounts[targetIndex]);
-
+    system("cls");
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
-    cout << "\n===========================================" << endl;
-    cout << "            TRANSFER SUCCESSFUL!            " << endl;
-    cout << "===========================================\n" << endl;
+    displayCenteredMessage("===========================================");
+    displayCenteredMessage("TRANSFER SUCCESSFUL!");
+    displayCenteredMessage("===========================================");
 
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-    cout << "Amount Transferred: " << transferAmount << endl;
-    cout << "Your new balance: " << accounts[accountIndex].balance << endl;
-    cout << "Target account new balance: " << accounts[targetIndex].balance << "\n" << endl;
+    cout << "\tAmount Transferred: " << transferAmount << endl;
+    cout << "\tYour new balance: " << accounts[accountIndex].balance << endl;
+    cout << "\tTarget account new balance: " << accounts[targetIndex].balance << "\n" << endl;
 
     system("pause");
 }
@@ -710,255 +883,236 @@ void fundTransfer(int accountIndex) {
 int verifyCard(int accountNumber, string enteredPin) {
     Account loadedAccount;
     if (readATMCardFile(accountNumber, enteredPin, loadedAccount)) {
-        // Update the internal list with the loaded account details
         int accountIndex = findAccount(accountNumber);
         if (accountIndex != -1) {
             accounts[accountIndex] = loadedAccount;
             return accountIndex;
+        }else {
+            accounts[accountCount] = loadedAccount;
+            accountIndex = accountCount;
+            accountCount++;
         }
+        return accountIndex;
     }
     return -1;
 }
 
-// MAIN MENU FOR ATM
-void atmMenu() {
+// LOGIN FOR ATM
+void atmLogin() {
     int accountNumber;
     string pin;
-    system("cls");
+    bool loginSuccess = false;
+    int retryCount = 0;
+    const int maxRetries = 3;
 
-    // Change text color to Yellow for the header
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
-    cout << "\n==========================================" << endl;
-    cout << "     Welcome to POWER BANK ATM MACHINE    " << endl;
-    cout << "==========================================\n" << endl;
-
-    // Reset text color to White
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-    cout << "\nPlease insert your card (enter account number): ";
-    cin >> accountNumber;
-
-    cout << "Enter your PIN: ";
-    pin = getHiddenPin();  // Capture hidden PIN input
-
-    int accountIndex = verifyCard(accountNumber, pin);
-    if (accountIndex == -1) return; // Invalid card or PIN
-
-    int choice;
-    do {
+    while (!loginSuccess && retryCount < maxRetries) {
         system("cls");
-
-        // Change text color to Yellow for the menu header
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
-        cout << "\n==========================================" << endl;
-        cout << "         POWER BANK ATM MACHINE MENU      " << endl;
-        cout << "==========================================\n" << endl;
+        displayCenteredMessage("==========================================");
+        displayCenteredMessage("Welcome to POWER BANK ATM MACHINE  ");
+        displayCenteredMessage("==========================================");
 
-        // Reset text color to RED for the instructions
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 12);
-        cout << "IMPORTANT: Ensure you exit the program properly after every transaction to save your account data." << endl;
-        cout << "Failure to exit properly may result in data loss.\n\n";
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+        cout << "\t\nPlease insert your card (enter account number): ";
+        cin >> accountNumber;
+
+        if (accountNumber == 0) {
+            displayCenteredMessage("Exiting ATM login process...");
+            system("pause");
+            return;
+        }
+
+        cout << "\tEnter your PIN: ";
+        pin = getHiddenPin();
+
+        int accountIndex = verifyCard(accountNumber, pin);
+
+        if (accountIndex == -1) {
+            system("cls");
+            retryCount++;
+            displayCenteredMessage("Invalid card or PIN. Please try again.");
+            displayCenteredMessage("Attempt " + to_string(retryCount) + " of " + to_string(maxRetries));
+            system("pause");
+        } else {
+            loginSuccess = true;
+            atmMenu(accountIndex);
+        }
+    }
+
+    if (!loginSuccess) {
+        displayCenteredMessage("Maximum login attempts exceeded. Returning to the main menu.");
         system("pause");
+    }
+    system("pause");
+}
+
+// MAIN MENU FOR ATM
+void atmMenu(int accountIndex) {
+    int choice = 1;
+    bool enterPressed = false;
+
+    while (!enterPressed) {
         system("cls");
 
-        // Change text color to Light Cyan for the ATM main menu
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
-        cout << "\n------------------------------------------" << endl;
-        cout << "                ATM MAIN MENU             " << endl;
-        cout << "-------------------------------------------\n" << endl;
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
+        displayCenteredMessage("==========================================");
+        displayCenteredMessage("     POWER BANK ATM MACHINE MENU     ");
+        displayCenteredMessage("==========================================");
 
-        cout << "  1. Balance Inquiry\n";
-        cout << "  2. Withdraw Money\n";
-        cout << "  3. Deposit Money\n";
-        cout << "  4. Change PIN\n";
-        cout << "  5. Fund Transfer\n";
-        cout << "  6. Exit\n";
 
-        // Reset text color to White for input prompt
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-        cout << "\n------------------------------------------" << endl;
-        cout << "Enter choice: ";
-        cin >> choice;
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 12);
+        displayCenteredMessage("IMPORTANT: Ensure you exit properly to save data.");
+        displayCenteredMessage("Failure to exit properly may result in data loss.\n");
+
+        displayCenteredMessage(choice == 1 ? " > Balance Inquiry" : "   Balance Inquiry");
+        displayCenteredMessage(choice == 2 ? " > Withdraw Money" : "   Withdraw Money");
+        displayCenteredMessage(choice == 3 ? " > Deposit Money" : "   Deposit Money");
+        displayCenteredMessage(choice == 4 ? " > Change PIN" : "   Change PIN");
+        displayCenteredMessage(choice == 5 ? " > Fund Transfer" : "   Fund Transfer");
+        displayCenteredMessage(choice == 6 ? " > Exit" : "   Exit");
+
+        int key = _getch();
+
+        if (key == 224) {
+            switch (_getch()) {
+                case 72:
+                    if (choice > 1) choice--;
+                    break;
+                case 80:
+                    if (choice < 6) choice++;
+                    break;
+            }
+        } else if (key == 13) {
+            enterPressed = true;
+        }
+    }
+
+    switch (choice) {
+        case 1:
+            balanceInquiry(accountIndex);
+            break;
+        case 2:
+            withdrawMoney(accountIndex);
+            break;
+        case 3:
+            depositMoney(accountIndex);
+            break;
+        case 4:
+            changePin(accountIndex);
+            break;
+        case 5:
+            fundTransfer(accountIndex);
+            break;
+        case 6:
+            system("cls");
+            displayCenteredMessage("============================================");
+            displayCenteredMessage("Thank you for using POWER BANK ATM MACHINE");
+            displayCenteredMessage("============================================");
+            return;
+    }
+
+    system("pause");
+
+    atmMenu(accountIndex);
+}
+
+// MAIN MENU FOR ATM
+void showMainMenu() {
+    while (true) {
+        system("cls");
+
+        int choice = REGISTER;
+        bool enterPressed = false;
+
+        while (!enterPressed) {
+            system("cls");
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
+            displayCenteredMessage("==========================================");
+            displayCenteredMessage("            POWER BANK MAIN MENU          ");
+            displayCenteredMessage("==========================================");
+
+            if (choice == REGISTER) {
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
+                displayCenteredMessage("  > Register Account");
+            } else {
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
+                displayCenteredMessage("    Register Account");
+            }
+
+            if (choice == ACCESS_ATM) {
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
+                displayCenteredMessage("  > Access ATM");
+            } else {
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
+                displayCenteredMessage("    Access ATM");
+            }
+
+            if (choice == DELETE_ACCOUNT) {
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
+                displayCenteredMessage("  > Delete Account");
+            } else {
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
+                displayCenteredMessage("    Delete Account");
+            }
+
+            if (choice == EXIT) {
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
+                displayCenteredMessage("  > Exit");
+            } else {
+                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
+                displayCenteredMessage("    Exit");
+            }
+
+            int key = _getch();
+
+            if (key == 224) {
+                switch (_getch()) {
+                    case 72:
+                        if (choice > REGISTER) choice--;
+                        break;
+                    case 80:
+                        if (choice < EXIT) choice++;
+                        break;
+                }
+            } else if (key == 13) {
+                enterPressed = true;
+            }
+        }
 
         switch (choice) {
-            case 1:
+            case REGISTER:
                 system("cls");
-
-                // Change text color to Green for Balance Inquiry
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 10);
-                cout << "\n==========================================" << endl;
-                cout << "             BALANCE INQUIRY              " << endl;
-                cout << "==========================================\n" << endl;
-
-                // Reset text color to White
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-                balanceInquiry(accountIndex);
+                displayCenteredMessage("You selected Register Account.");
+                registerAccount();
                 break;
-            case 2:
+            case ACCESS_ATM:
                 system("cls");
-
-                // Change text color to Green for Withdraw Money
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 10);
-                cout << "\n==========================================" << endl;
-                cout << "             WITHDRAW MONEY               " << endl;
-                cout << "==========================================\n" << endl;
-
-                // Reset text color to White
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-                withdrawMoney(accountIndex);
+                displayCenteredMessage("You selected Access ATM.");
+                atmLogin();
                 break;
-            case 3:
+            case DELETE_ACCOUNT:
                 system("cls");
-
-                // Change text color to Green for Deposit Money
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 10);
-                cout << "\n==========================================" << endl;
-                cout << "             DEPOSIT MONEY                " << endl;
-                cout << "==========================================\n" << endl;
-
-                // Reset text color to White
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-                depositMoney(accountIndex);
+                displayCenteredMessage("You selected Delete Account.");
+                deleteAccount();
                 break;
-            case 4:
+            case EXIT:
                 system("cls");
-
-                // Change text color to Yellow for Change PIN
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
-                cout << "\n==========================================" << endl;
-                cout << "              CHANGE PIN                  " << endl;
-                cout << "==========================================\n" << endl;
-
-                // Reset text color to White
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-                changePin(accountIndex);
-                break;
-            case 5:
-                system("cls");
-
-                // Change text color to Green for Fund Transfer
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 10);
-                cout << "\n==========================================" << endl;
-                cout << "            FUND TRANSFER                 " << endl;
-                cout << "==========================================\n" << endl;
-
-                // Reset text color to White
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-                fundTransfer(accountIndex);
-                break;
-            case 6:
-                system("cls");
-
-                // Change text color to Green for exit message
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
-                cout << "\n============================================" << endl;
-                cout << " Thank you for using POWER BANK ATM MACHINE " << endl;
-                cout << "============================================\n" << endl;
-
-                // Reset text color to White
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-                break;
-            default:
-                // Change text color to Red for invalid input
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-                cout << "\n------------------------------------------" << endl;
-                cout << "             Invalid choice." << endl;
-                cout << "------------------------------------------\n" << endl;
-
-                // Reset text color to White
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+                displayCenteredMessage("Thank you for using POWER BANK!");
+                displayCenteredMessage("Exiting...");
+                saveAccountsToFile();
+                exit(0);
         }
-        system("pause");
-    } while (choice != 6);
+    }
 }
 
 // MAIN FUNCTION
 int main() {
-    // Load account data from file at startup
     loadAccountsFromFile();
 
-    int option;
-    do {
-        system("cls");
-
-        // Change text color to Yellow for the header
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
-        cout << "\n==========================================" << endl;
-        cout << "         WELCOME TO POWER BANK            " << endl;
-        cout << "==========================================\n" << endl;
-
-        // Change text color to White for the main menu
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-        cout << "           Main Menu Options:             " << endl;
-        cout << "------------------------------------------\n" << endl;
-
-        // Change text color to Light Cyan for menu options
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
-        cout << "  1. Register Account" << endl;
-        cout << "  2. Access ATM" << endl;
-        cout << "  3. Delete Account" << endl;  // Added delete account option
-        cout << "  4. Exit" << endl;
-
-        // Change text color back to White for prompt
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-        cout << "\n------------------------------------------" << endl;
-        cout << "Enter choice: ";
-        cin >> option;
-
-        switch (option) {
-            case 1:
-                system("cls");
-                // Change text color to Yellow for registration header
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
-                cout << "\n==========================================" << endl;
-                cout << "            REGISTER ACCOUNT              " << endl;
-                cout << "==========================================\n" << endl;
-
-                // Reset color to White
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-                registerAccount();
-                break;
-            case 2:
-                system("cls");
-                atmMenu();
-                break;
-            case 3:
-                system("cls");
-                // Change text color to Red for deletion header
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-                cout << "\n==========================================" << endl;
-                cout << "             DELETE ACCOUNT               " << endl;
-                cout << "==========================================\n" << endl;
-
-                // Reset color to White
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-                deleteAccount(); // Call the new deleteAccount function
-                break;
-            case 4:
-                system("cls");
-                // Save account data to file before exiting
-                saveAccountsToFile();
-
-                // Change text color to Green for exit message
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
-                cout << "\n==========================================" << endl;
-                cout << "    Exiting POWER BANK ATM MACHINE        " << endl;
-                cout << "==========================================\n" << endl;
-
-                // Reset color to White
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-                break;
-            default:
-                // Change text color to Red for invalid input
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-                cout << "\n------------------------------------------" << endl;
-                cout << "            Invalid choice. Try again." << endl;
-                cout << "------------------------------------------\n" << endl;
-
-                // Reset color to White
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-        }
-        system("pause");
-    } while (option != 4);
+    if (waitForUsbInsert()) {
+        showProgressBar();
+        showMainMenu();
+    }
 
     return 0;
 }
